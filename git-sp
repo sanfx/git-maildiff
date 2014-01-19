@@ -10,17 +10,23 @@ from ansi2html.converter import Ansi2HTMLConverter
 
 ansiText =  os.path.expanduser('~/Desktop/colorDiff')
 
+pr = subprocess.Popen('git show --stat', shell=True, stdout=subprocess.PIPE, stderr = subprocess.PIPE )
+error = pr.stderr.read()
+if 'fatal' not in error.split(":"):
+	# TODO: make a common function for subprocess calls
+	# TODO: check for uncommited changes and print them 
+
+	proc = subprocess.Popen('git diff HEAD^ HEAD --color',  shell=True, stdout=subprocess.PIPE, stderr = subprocess.PIPE )
+	diffData = proc.stdout.read()
+	conv = Ansi2HTMLConverter()
+
+	html = conv.convert(diffData)
 
 
-proc = subprocess.Popen('git diff HEAD^ HEAD --color',  shell=True, stdout=subprocess.PIPE, stderr = subprocess.PIPE )
-diffData = proc.stdout.read()
-conv = Ansi2HTMLConverter()
+	with open("%s.html" % ansiText, 'w') as wf:
+		wf.write(html)
 
-html = conv.convert(diffData)
+	print str(proc.stderr.read()).capitalize()
 
-
-with open("%s.html" % ansiText, 'w') as wf:
-	wf.write(html)
-
-# os.remove(ansiText)
-print str(proc.stderr.read()).capitalize()
+else:
+	print error.capitalize()
