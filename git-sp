@@ -11,18 +11,16 @@ from ansi2html.converter import Ansi2HTMLConverter
 ansiText =  os.path.expanduser('~/Desktop/colorDiff')
 
 
-pr = subprocess.Popen( "git diff HEAD^ HEAD --color > "+ansiText , cwd = os.getcwd() , shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
-(out, error) = pr.communicate()
-i = 0
+
+proc = subprocess.Popen('git diff HEAD^ HEAD --color',  shell=True, stdout=subprocess.PIPE, stderr = subprocess.PIPE )
+diffData = proc.stdout.read()
 conv = Ansi2HTMLConverter()
-html = ''
-with open(ansiText, 'r+') as fh:
-	for line in fh.read().split("\n"):
-		html += conv.convert(line)
+
+html = conv.convert(diffData)
 
 
-with open("%s.html" % ansiText, 'w+') as wf:
+with open("%s.html" % ansiText, 'w') as wf:
 	wf.write(html)
 
-os.remove(ansiText)
-print str(error).capitalize()
+# os.remove(ansiText)
+print str(proc.stderr.read()).capitalize()
