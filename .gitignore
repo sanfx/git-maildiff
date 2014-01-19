@@ -1,0 +1,7 @@
+*.png
+*.jpg
+*.pyo
+*coverage
+*.pyc
+*.sublime-workspace
+*.sublime-project
