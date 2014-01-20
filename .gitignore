@@ -2,6 +2,7 @@
 *.jpg
 *.pyo
 *coverage
+*.patch
 *.pyc
 *.sublime-workspace
 *.sublime-project

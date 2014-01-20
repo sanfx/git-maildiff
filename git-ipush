@@ -1,0 +1,153 @@
+#! /usr/bin/env python
+# -*-coding: utf8-*-
+# file: git-ipush
+# command: git ipush
+
+import argparse
+import subprocess
+import os
+import re
+import send
+import sys
+
+class INVALIDEMAIL(Exception):
+	pass
+
+		
+def main():
+	parser = argparse.ArgumentParser(prog='ipush', description='Utility to push the last commit and email the color diff')
+	parser.add_argument('-v', '--verbose', action='store_true', help='if enabled will spit every command and its resulting data.')
+	parser.add_argument('-c', '--compose', help='text message to be sent with diff')
+	parser.add_argument('-to', type=str, help='enter a valid email you want to send to.')
+	parser.add_argument('-ver', '--version', action='version', version='%(prog)s 1.0')
+	parser.add_argument('-d', '--diff', required=False, help='if present pass arguments to it as you will do to git diff in inverted commas')
+	args = parser.parse_args()
+
+	VERBOSE = args.verbose
+
+	optArgs = vars(args)
+	if optArgs['to']:
+		sendTo = optArgs['to']
+		pattern = "^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$"
+		if not re.match(pattern, sendTo) != None:
+			raise INVALIDEMAIL("You have entered an invalid email to send to.")
+	else:
+		sendto = "niceguysan@gmail.com"
+
+	diffCmd = 'git diff HEAD^ HEAD' if not optArgs['diff'] else "git diff %s" % optArgs['diff']
+
+	branchName, _ = execGitCommand('git rev-parse --abbrev-ref HEAD')
+
+	# stripping newline character which got appended when pulling branch name
+	branchName = branchName.split("\n")[0]
+	commitComment, _ = execGitCommand('git log -1 --pretty=%B')
+	subject = "%s: %s" % (branchName, commitComment)
+
+	# check for fatal error when executing git command
+	diffData, error = execGitCommand(diffCmd, VERBOSE)
+	if 'fatal' not in error.split(":"):
+		modifiedData, error = execGitCommand('git status', VERBOSE)
+		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
+			print "\x1b[31m You have uncommited changes, Commit and try again:\x1b[m"
+			return
+		# only push that is displayed 
+		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
+			pushBranch(VERBOSE)
+		if diffData:
+			htmlDiff = getHtml(diffData.split("\n"))
+			# TODO: launch git default editor to type message
+			message = htmlDiff if not optArgs['compose'] else "%s<br><br>%s" % (
+				optArgs['compose'], htmlDiff)
+			emailDiff(subject, sendTo, message)
+	else:
+		print error.capitalize()
+
+def getHtml(diffData):
+	"""	This method convertes git diff data to html color code
+	"""
+	lines = ""
+	openTag = "<span style='font-size: .80em; color: "
+	openTagEnd = ";font-family: courier, arial, helvetica, sans-serif;'>"
+	nbsp = '&nbsp;&nbsp;&nbsp;&nbsp;'
+	for eachLine in diffData:
+		if eachLine.startswith('-'):
+			tabs = eachLine.count('\t')
+			lines += "%s#ff0000%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs ,eachLine)
+		elif eachLine.startswith('+'):
+			tabs = eachLine.count('\t')
+			lines += "%s#007900%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs, eachLine)
+		else:
+			tabs = eachLine.count('\t')
+			lines += "%s#000000%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs, eachLine)
+	return lines
+
+
+def execGitCommand(command=None, verbose=False):
+	"""	Function used to get data out of git commads
+		and errors in case of failure.
+
+		Args:
+			command(string): string of a git command
+			verbose(bool): whether to display every command
+			and its resulting data.
+		Return:
+			(tuple): string of Data and error if present
+	"""
+	if command:
+		pr = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		msg = pr.stdout.read()
+		err = pr.stderr.read()
+		txt = "\x1b[32mResult:\x1b[m\n"+msg if msg else "\x1b[31mError:\x1b[m\n"+err
+		if verbose:
+			print "Executing '%s'\n%s" % (command, txt)
+		return msg, err
+
+def emailDiff(subject, emailTo, htmlDiff):
+	""" This function send color diff via email
+
+		Args:
+			subject(string): name of the branch with commit message
+			htmlDiff(string): html formatted string
+	"""
+
+	mail = send.EMail(
+						mailFrom=os.getenv('myemail'), 
+						server='smtp.gmail.com', 
+						usrname=os.getenv('myemail').split('@')[0],
+						password=os.getenv('PASS'), 
+						files=None, 
+						debug=False
+					)
+	mail.sendMessage(subject, htmlDiff, None, emailTo)
+	print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (subject, emailTo)
+
+def pushBranch(VERBOSE):
+	"""	Pushes the branch to remote repository
+
+		Args:
+			VERBOSE(bool): defines whether to spit out which command
+			is being executed and result of command.
+		Return:
+			(bool) True if push Succesfull else False 
+	"""
+
+	_, err = execGitCommand('git push')
+	if re.search(r'rejected', err):
+		print '%s\n\x1b[31mDo you want to try force push?\x1b[m\n\x1b[31mEnter yes to force Push else any key to cancel\x1b[m' % err
+		# default value yes and hit enter without entering anything
+		answer = raw_input('[YES]')
+		if answer and answer.lower() not in  ['yes', 'y', 'f', 'git push -f']:
+			print "Cancelled !!!"
+		else:
+			execGitCommand('git push -f', VERBOSE)
+			print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
+			return True
+	else:
+		print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
+		return True
+	return False
+
+
+
+if __name__ == '__main__':
+	sys.exit(main())
