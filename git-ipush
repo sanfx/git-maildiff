@@ -58,7 +58,7 @@ def main():
 			# TODO: launch git default editor to type message
 			message = htmlDiff if not optArgs['compose'] else "%s<br><br>%s" % (
 				optArgs['compose'], htmlDiff)
-			emailDiff(subject, sendTo, message)
+			emailDiff(subject, sendto, message)
 	else:
 		print error.capitalize()
 
