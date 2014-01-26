@@ -10,17 +10,25 @@ import re
 import send
 import sys
 
+
 class INVALIDEMAIL(Exception):
 	pass
 
-		
+
 def main():
-	parser = argparse.ArgumentParser(prog='ipush', description='Utility to push the last commit and email the color diff')
-	parser.add_argument('-v', '--verbose', action='store_true', help='if enabled will spit every command and its resulting data.')
-	parser.add_argument('-c', '--compose', help='text message to be sent with diff')
-	parser.add_argument('-to', type=str, help='enter a valid email you want to send to.')
-	parser.add_argument('-ver', '--version', action='version', version='%(prog)s 1.0')
-	parser.add_argument('-d', '--diff', required=False, help='if present pass arguments to it as you will do to git diff in inverted commas')
+	parser = argparse.ArgumentParser(prog='ipush',
+		description='Utility to push the last commit and email the color diff')
+	parser.add_argument('-v', '--verbose', action='store_true',
+		help='if enabled will spit every command and its resulting data.')
+	parser.add_argument('-c', '--compose',
+		help='text message to be sent with diff')
+	parser.add_argument('-to', type=str,
+		help='enter a valid email you want to send to.')
+	parser.add_argument('-ver', '--version', action='version',
+		version='%(prog)s 1.0')
+	parser.add_argument('-d', '--diff', required=False, 
+		help='if present pass arguments to it as you \
+		will do to git diff in inverted commas')
 	args = parser.parse_args()
 
 	VERBOSE = args.verbose
@@ -29,7 +37,7 @@ def main():
 	if optArgs['to']:
 		sendTo = optArgs['to']
 		pattern = "^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$"
-		if not re.match(pattern, sendTo) != None:
+		if not re.match(pattern, sendTo) is None:
 			raise INVALIDEMAIL("You have entered an invalid email to send to.")
 	else:
 		sendto = "niceguysan@gmail.com"
@@ -50,7 +58,7 @@ def main():
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
 			print "\x1b[31m You have uncommited changes, Commit and try again:\x1b[m"
 			return
-		# only push that is displayed 
+		# only push that is displayed
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
 			pushBranch(VERBOSE)
 		if diffData:
@@ -62,24 +70,21 @@ def main():
 	else:
 		print error.capitalize()
 
+
 def getHtml(diffData):
 	"""	This method convertes git diff data to html color code
 	"""
-	lines = ""
 	openTag = "<span style='font-size: .80em; color: "
-	openTagEnd = ";font-family: courier, arial, helvetica, sans-serif;'>"
+	openTagEnd = "00;font-family: courier, arial, helvetica, sans-serif;'>"
 	nbsp = '&nbsp;&nbsp;&nbsp;&nbsp;'
-	for eachLine in diffData:
-		if eachLine.startswith('-'):
-			tabs = eachLine.count('\t')
-			lines += "%s#ff0000%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs ,eachLine)
-		elif eachLine.startswith('+'):
-			tabs = eachLine.count('\t')
-			lines += "%s#007900%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs, eachLine)
-		else:
-			tabs = eachLine.count('\t')
-			lines += "%s#000000%s%s%s</span><br>" % (openTag, openTagEnd, nbsp*tabs, eachLine)
-	return lines
+	lines = []
+
+	for line in diffData:
+		color = "#ff00" if line.startswith('-') else ('#0079' if line.startswith('+') else '#0000')
+		tabs = line.count('\t')
+		lines.append("%s%s%s%s%s</span><br>" % 
+			((openTag, color, openTagEnd, nbsp*tabs ,line)))
+	return ''.join(lines)
 
 
 def execGitCommand(command=None, verbose=False):
@@ -94,7 +99,8 @@ def execGitCommand(command=None, verbose=False):
 			(tuple): string of Data and error if present
 	"""
 	if command:
-		pr = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		pr = subprocess.Popen(command, shell=True,
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		msg = pr.stdout.read()
 		err = pr.stderr.read()
 		txt = "\x1b[32mResult:\x1b[m\n"+msg if msg else "\x1b[31mError:\x1b[m\n"+err
@@ -133,10 +139,11 @@ def pushBranch(VERBOSE):
 
 	_, err = execGitCommand('git push')
 	if re.search(r'rejected', err):
-		print '%s\n\x1b[31mDo you want to try force push?\x1b[m\n\x1b[31mEnter yes to force Push else any key to cancel\x1b[m' % err
+		txt = '\x1b[31mDo you want to try force push?\n'
+		print '%s%sEnter yes to force Push else any key to cancel\x1b[m' % (err, txt)
 		# default value yes and hit enter without entering anything
 		answer = raw_input('[YES]')
-		if answer and answer.lower() not in  ['yes', 'y', 'f', 'git push -f']:
+		if answer and answer.lower() not in ['yes', 'y', 'f', 'git push -f']:
 			print "Cancelled !!!"
 		else:
 			execGitCommand('git push -f', VERBOSE)
@@ -146,7 +153,6 @@ def pushBranch(VERBOSE):
 		print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
 		return True
 	return False
-
 
 
 if __name__ == '__main__':

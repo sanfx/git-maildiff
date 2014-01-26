@@ -25,3 +25,5 @@ when no -diff or -d flag is passed with value the default value is **git diff HE
 **Email:** <skysan@gmail.com>
 
 **Website:** [www.devilsan.com](http://www.devilsan.com "click to got to website")
+
+**iPush Page** [hhttp://goo.gl/3NEHvn](http://goo.gl/3NEHvn "Click to read story behind how it came up!!!")

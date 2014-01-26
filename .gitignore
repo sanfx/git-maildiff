@@ -1,6 +1,7 @@
 *.png
 *.jpg
 *.pyo
+chart.png
 *coverage
 *.patch
 *.pyc
