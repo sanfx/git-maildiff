@@ -26,6 +26,8 @@ def main():
 		help='enter a valid email you want to send to.')
 	parser.add_argument('-ver', '--version', action='version',
 		version='%(prog)s 1.0')
+	parser.add_argument('-p', '--patches', type=int, default=0,
+		help='total number of pathces of last commits to email')
 	parser.add_argument('-d', '--diff', required=False, 
 		help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
@@ -34,6 +36,9 @@ def main():
 	VERBOSE = args.verbose
 
 	optArgs = vars(args)
+
+	patchNum = optArgs['patches']
+
 	if optArgs['to']:
 		sendTo = optArgs['to']
 		pattern = "^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$"
@@ -42,7 +47,7 @@ def main():
 	else:
 		sendto = "niceguysan@gmail.com"
 
-	diffCmd = 'git diff HEAD^ HEAD' if not optArgs['diff'] else "git diff %s" % optArgs['diff']
+	diffCmd = 'git diff %s' % (optArgs['diff']  if optArgs['diff'] else "HEAD^ HEAD")
 
 	branchName, _ = execGitCommand('git rev-parse --abbrev-ref HEAD')
 
@@ -60,19 +65,23 @@ def main():
 			return
 		# only push that is displayed
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			pushBranch(VERBOSE)
+			name , eror = execGitCommand('git format-patch -%s' % patchNum)
+			patches = filter(None, name.split("\n"))
 		if diffData:
 			htmlDiff = getHtml(diffData.split("\n"))
 			# TODO: launch git default editor to type message
 			message = htmlDiff if not optArgs['compose'] else "%s<br><br>%s" % (
 				optArgs['compose'], htmlDiff)
-			emailDiff(subject, sendto, message)
+			emailDiff(subject, sendto, message, patches)
 	else:
 		print error.capitalize()
 
 
 def getHtml(diffData):
 	"""	This method convertes git diff data to html color code
+
+		Args:
+			diffData(sting): diff between commits in simple text
 	"""
 	openTag = "<span style='font-size: .80em; color: "
 	openTagEnd = "00;font-family: courier, arial, helvetica, sans-serif;'>"
@@ -108,12 +117,13 @@ def execGitCommand(command=None, verbose=False):
 			print "Executing '%s'\n%s" % (command, txt)
 		return msg, err
 
-def emailDiff(subject, emailTo, htmlDiff):
+def emailDiff(subject, emailTo, htmlDiff, attachment):
 	""" This function send color diff via email
 
 		Args:
 			subject(string): name of the branch with commit message
 			htmlDiff(string): html formatted string
+			attachment(list): list of file names to be attached
 	"""
 
 	mail = send.EMail(
@@ -121,10 +131,9 @@ def emailDiff(subject, emailTo, htmlDiff):
 						server='smtp.gmail.com', 
 						usrname=os.getenv('myemail').split('@')[0],
 						password=os.getenv('PASS'), 
-						files=None, 
 						debug=False
 					)
-	mail.sendMessage(subject, htmlDiff, None, emailTo)
+	mail.sendMessage(subject, htmlDiff, attachment, emailTo)
 	print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (subject, emailTo)
 
 def pushBranch(VERBOSE):

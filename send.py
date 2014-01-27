@@ -3,12 +3,13 @@ from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
 from email import Encoders
+import os
 import smtplib
 
 class EMail(object):
 		""" Class defines method to send email
 		"""
-		def __init__(self, mailFrom, server, usrname, password, files, debug=False):
+		def __init__(self, mailFrom, server, usrname, password, debug=False):
 				self.debug = debug
 				self.mailFrom = mailFrom
 				self.smtpserver = server
@@ -61,12 +62,11 @@ class EMail(object):
 			#the Body message
 			msg.attach(MIMEText(msgHTML, 'html'))
 			msg.attach(MIMEText("Sent using git ipush\n git clone https://sanfx@bitbucket.org/sanfx/git-ipush.git"))
-			if attachments:
-				for phile in attachments:
-						# we could check for MIMETypes here
-						part = MIMEBase('application',"octet-stream")
-						part.set_payload(open(phile, "rb").read())
-						Encoders.encode_base64(part)
-						part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(phile))
-						msg.attach(part)
+			for phile in attachments:
+					# we could check for MIMETypes here
+					part = MIMEBase('application',"octet-stream")
+					part.set_payload(open(phile, "rb").read())
+					Encoders.encode_base64(part)
+					part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(phile))
+					msg.attach(part)
 			return msg
