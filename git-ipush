@@ -11,9 +11,17 @@ import send
 import sys
 
 
-class INVALIDEMAIL(Exception):
-	pass
+def validate_address(address):
+	"""	If address looks like a valid e-mail address, return it. Otherwise
+		raise ArgumentTypeError.
 
+		Args:
+			address(string): email address to send to
+
+	"""
+	if re.match('^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$', address):
+		return address
+	raise argparse.ArgumentTypeError('Invalid e-mail address: %s' % address)
 
 def main():
 	parser = argparse.ArgumentParser(prog='ipush',
@@ -22,13 +30,13 @@ def main():
 		help='if enabled will spit every command and its resulting data.')
 	parser.add_argument('-c', '--compose',
 		help='text message to be sent with diff')
-	parser.add_argument('-to', type=str,
-		help='enter a valid email you want to send to.')
-	parser.add_argument('-ver', '--version', action='version',
+	parser.add_argument('-to', type=validate_address, default=os.getenv('myemail'),
+		help='enter a valid email you want to send to.', nargs='?')
+	parser.add_argument('-V', '--version', action='version',
 		version='%(prog)s 1.0')
 	parser.add_argument('-p', '--patches', type=int, default=0,
 		help='total number of pathces of last commits to email')
-	parser.add_argument('-d', '--diff', required=False, 
+	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
 		help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
 	args = parser.parse_args()
@@ -39,15 +47,7 @@ def main():
 
 	patchNum = optArgs['patches']
 
-	if optArgs['to']:
-		sendTo = optArgs['to']
-		pattern = "^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$"
-		if not re.match(pattern, sendTo) is None:
-			raise INVALIDEMAIL("You have entered an invalid email to send to.")
-	else:
-		sendto = "niceguysan@gmail.com"
-
-	diffCmd = 'git diff %s' % (optArgs['diff']  if optArgs['diff'] else "HEAD^ HEAD")
+	diffCmd = 'git diff %s' % args.diff
 
 	branchName, _ = execGitCommand('git rev-parse --abbrev-ref HEAD')
 
@@ -63,6 +63,7 @@ def main():
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
 			print "\x1b[31m You have uncommited changes, Commit and try again:\x1b[m"
 			return
+
 		# only push that is displayed
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
 			name , eror = execGitCommand('git format-patch -%s' % patchNum)
@@ -70,8 +71,8 @@ def main():
 		if diffData:
 			htmlDiff = getHtml(diffData.split("\n"))
 			# TODO: launch git default editor to type message
-			message = htmlDiff if not optArgs['compose'] else "%s<br><br>%s" % (
-				optArgs['compose'], htmlDiff)
+			message = htmlDiff if not args.compose else "%s<br><br>%s" % (
+				args.compose, htmlDiff)
 			emailDiff(subject, sendto, message, patches)
 	else:
 		print error.capitalize()
