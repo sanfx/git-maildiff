@@ -26,20 +26,87 @@ def validate_address(address):
 def main():
 	parser = argparse.ArgumentParser(prog='ipush',
 		description='Utility to push the last commit and email the color diff')
-	parser.add_argument('-v', '--verbose', action='store_true',
+	parser.add_argument('-v', '--verbose', action='store_true', 
 		help='if enabled will spit every command and its resulting data.')
-	parser.add_argument('-c', '--compose',
-		help='text message to be sent with diff')
-	parser.add_argument('-to', type=validate_address, default=os.getenv('myemail'),
+	parser.add_argument('-c', '--compose', action='store_true', 
+		help='compose message in default git editor to be sent prefixed with diff')
+	parser.add_argument('-to', type=validate_address, metavar='Email',
 		help='enter a valid email you want to send to.', nargs='?')
 	parser.add_argument('-V', '--version', action='version',
-		version='%(prog)s 1.0')
-	parser.add_argument('-p', '--patches', type=int, default=0,
+		version='%(prog)s 1.0, Required Python 2.7')
+	parser.add_argument('-p', '--patches', type=int, default=0,metavar='*.patch files',
 		help='total number of pathces of last commits to email')
-	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
+	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',metavar='HEAD^ HEAD',
 		help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
 	args = parser.parse_args()
+	preCheck(args)
+
+
+def configDb():
+	"""	Reads git global config file
+
+		Returns:
+			config(dict): git config settings
+	"""
+	# Read git config file
+	configFile, _ = execGitCommand('git config --list')
+	config = {}
+	for line in filter(None, configFile.split("\n")):
+		config[line.split("=")[0]] = line.split("=")[-1]
+
+	return config
+
+def launchEditor(editor):
+	"""	this function launchs the default git editor
+		set in git config for user to compose message
+		to be sent along with git diff.
+
+		Args:
+			editor(str): name or path of editor
+		Returns:
+			msg(str): html formatted message
+	"""
+
+	filePath = os.path.join(os.getcwd(), "compose.txt")
+	wfh = open(filePath, 'w')
+	wfh.close()
+
+	if os.path.exists(filePath):
+		# using sublime
+		if re.search(r'ubl', editor):
+			diff = subprocess.Popen(['cat', filePath], stdout=subprocess.PIPE)
+			pr = subprocess.Popen(
+				editor,
+				stdout=subprocess.PIPE,
+				stderr=subprocess.PIPE,
+				shell=True,
+				stdin=diff.stdout
+				)
+			pr.wait()
+			if pr.returncode == 0:
+				msg = pr.stdout.read()
+		else:
+			# using vim or nano
+			pr = subprocess.Popen([editor, filePath], stdin=open('/dev/tty', 'r'))
+			pr.wait()
+			if pr.returncode == 0:
+				with open(filePath, 'r') as fh:
+					msg = fh.readlines()
+	os.remove(filePath)
+	return "".join(msg).replace("\n","<br>")
+
+
+def preCheck(args):
+	"""	This function do a pre-check of the repository state
+		and default value to variables from git config
+
+		Args:
+			args(argparse.Namespace): data from git config
+	"""
+	config = configDb()
+
+	editor = config['core.editor'] if config.has_key('core.editor') else 'vi'
 
 	VERBOSE = args.verbose
 
@@ -57,22 +124,34 @@ def main():
 	if 'fatal' not in error.split(":"):
 		modifiedData, error = execGitCommand('git status', VERBOSE)
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
-			print "\x1b[31m You have uncommited changes, Commit and try again:\x1b[m"
-			return
-		elif re.search('ahead', modifiedData):
-			print modifiedData
+			print "\x1b[31m You have uncommited changes, Commit and try again\x1b[m"
 			return
 
-		# only push that is displayed
-		# if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-		# 	name , eror = execGitCommand('git format-patch -%s' % args.patches)
-		# 	patches = filter(None, name.split("\n"))
-		# if diffData:
-		# 	htmlDiff = getHtml(diffData.split("\n"))
-		# 	# TODO: launch git default editor to type message
-		# 	message = htmlDiff if not args.compose else "%s<br><br>%s" % (
-		# 		args.compose, htmlDiff)
-		# 	emailDiff(subject, args.to, message, patches)
+		cmtMesgs, _ = execGitCommand('git log origin/%s..HEAD --decorate --oneline' % branchName)
+		if cmtMesgs:
+			unPushComit = filter(None, cmtMesgs.split("\n"))
+			print ("\n\x1b[31mInitiating push for %s commits listed below to remote\x1b[32m/%s\x1b[m\n%s") % (
+				len(unPushComit), branchName, cmtMesgs)
+
+		# only push that is displayed or the last commit
+		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
+			pushBranch(VERBOSE)
+			name , eror = execGitCommand('git format-patch -%s' % args.patches)
+			patches = filter(None, name.split("\n"))
+		if diffData:
+			message = ""
+			if args.compose:
+				message = launchEditor(editor)
+			htmlDiff = getHtml(diffData.split("\n"))
+			message = "%s<br><br>%s" % (message, htmlDiff)
+			# email id to be sent from
+			fromId = config['user.email'] if config.has_key(
+				'user.email') else raw_input("Your Email:")
+
+			mailto = args.to if args.to else raw_input("Who do you want to send to? ")
+			emailFrom = validate_address(fromId)
+
+			emailDiff(subject, mailto, message, patches)
 	else:
 		print error.capitalize()
 
@@ -89,7 +168,8 @@ def getHtml(diffData):
 	lines = []
 
 	for line in diffData:
-		color = "#ff00" if line.startswith('-') else ('#0079' if line.startswith('+') else '#0000')
+		color = "#ff00" if line.startswith('-') else (
+			'#0079' if line.startswith('+') else '#0000')
 		tabs = line.count('\t')
 		lines.append("%s%s%s%s%s</span><br>" % 
 			((openTag, color, openTagEnd, nbsp*tabs ,line)))
@@ -125,16 +205,21 @@ def emailDiff(subject, emailTo, htmlDiff, attachment):
 			htmlDiff(string): html formatted string
 			attachment(list): list of file names to be attached
 	"""
+	# add tool signature
+	htmlDiff = """%s<br><br>
+	Sent using git ipush<br>
+	git clone https://sanfx@bitbucket.org/sanfx/git-ipush.git""" % htmlDiff
 
 	mail = send.EMail(
-						mailFrom=os.getenv('myemail'), 
-						server='smtp.gmail.com', 
-						usrname=os.getenv('myemail').split('@')[0],
+						mailFrom=configDb()['ipush.mailfrom'], 
+						server=configDb()['ipush.smtpserver'], 
+						usrname=configDb()['ipush.mailfrom'].split('@')[0],
 						password=os.getenv('PASS'), 
 						debug=False
 					)
 	mail.sendMessage(subject, htmlDiff, attachment, emailTo)
-	print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (subject, emailTo)
+	print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (
+		subject, emailTo)
 
 def pushBranch(VERBOSE):
 	"""	Pushes the branch to remote repository
