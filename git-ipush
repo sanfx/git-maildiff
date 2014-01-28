@@ -59,17 +59,20 @@ def main():
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
 			print "\x1b[31m You have uncommited changes, Commit and try again:\x1b[m"
 			return
+		elif re.search('ahead', modifiedData):
+			print modifiedData
+			return
 
 		# only push that is displayed
-		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			name , eror = execGitCommand('git format-patch -%s' % args.patches)
-			patches = filter(None, name.split("\n"))
-		if diffData:
-			htmlDiff = getHtml(diffData.split("\n"))
-			# TODO: launch git default editor to type message
-			message = htmlDiff if not args.compose else "%s<br><br>%s" % (
-				args.compose, htmlDiff)
-			emailDiff(subject, args.to, message, patches)
+		# if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
+		# 	name , eror = execGitCommand('git format-patch -%s' % args.patches)
+		# 	patches = filter(None, name.split("\n"))
+		# if diffData:
+		# 	htmlDiff = getHtml(diffData.split("\n"))
+		# 	# TODO: launch git default editor to type message
+		# 	message = htmlDiff if not args.compose else "%s<br><br>%s" % (
+		# 		args.compose, htmlDiff)
+		# 	emailDiff(subject, args.to, message, patches)
 	else:
 		print error.capitalize()
 
