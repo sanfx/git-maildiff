@@ -43,10 +43,6 @@ def main():
 
 	VERBOSE = args.verbose
 
-	optArgs = vars(args)
-
-	patchNum = optArgs['patches']
-
 	diffCmd = 'git diff %s' % args.diff
 
 	branchName, _ = execGitCommand('git rev-parse --abbrev-ref HEAD')
@@ -66,14 +62,14 @@ def main():
 
 		# only push that is displayed
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			name , eror = execGitCommand('git format-patch -%s' % patchNum)
+			name , eror = execGitCommand('git format-patch -%s' % args.patches)
 			patches = filter(None, name.split("\n"))
 		if diffData:
 			htmlDiff = getHtml(diffData.split("\n"))
 			# TODO: launch git default editor to type message
 			message = htmlDiff if not args.compose else "%s<br><br>%s" % (
 				args.compose, htmlDiff)
-			emailDiff(subject, sendto, message, patches)
+			emailDiff(subject, args.to, message, patches)
 	else:
 		print error.capitalize()
 
