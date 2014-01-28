@@ -61,7 +61,6 @@ class EMail(object):
 
 			#the Body message
 			msg.attach(MIMEText(msgHTML, 'html'))
-			msg.attach(MIMEText("Sent using git ipush\n git clone https://sanfx@bitbucket.org/sanfx/git-ipush.git"))
 			for phile in attachments:
 					# we could check for MIMETypes here
 					part = MIMEBase('application',"octet-stream")
