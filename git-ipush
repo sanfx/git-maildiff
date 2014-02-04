@@ -9,6 +9,7 @@ import os
 import re
 import send
 import sys
+import tempfile
 
 
 def validate_address(address):
@@ -33,12 +34,14 @@ def main():
 	parser.add_argument('-to', type=validate_address, metavar='Email',
 		help='enter a valid email you want to send to.', nargs='?')
 	parser.add_argument('-V', '--version', action='version',
-		version='%(prog)s 1.0, Required Python 2.7')
-	parser.add_argument('-p', '--patches', type=int, default=0,metavar='*.patch files',
+		version="%s : 1.0 %s   Required Python version: 2.7, Your Python Version: %s" % (
+			parser.prog, parser.description, sys.version))
+	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',metavar='HEAD^ HEAD',
 		help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
+
 	args = parser.parse_args()
 	preCheck(args)
 
@@ -67,6 +70,16 @@ def launchEditor(editor):
 		Returns:
 			msg(str): html formatted message
 	"""
+	# print editor.split(" ")[0], "\n", os.path.exists(editor.split(" ")[0])
+
+	# with tempfile.NamedTemporaryFile() as f:
+	# 	f.close()
+	# 	print "Exists or not: %s " % os.path.exists(f.name)
+	# 	if subprocess.call([editor.split(" ")[0], f.name]) != 0:
+	# 		raise IOError("{} exited with code {}.".format(editor.split(" ")[0], rc))
+	# 	with open(f.name) as g:
+	# 		return g.read()
+
 
 	filePath = os.path.join(os.getcwd(), "compose.txt")
 	wfh = open(filePath, 'w')
@@ -75,24 +88,21 @@ def launchEditor(editor):
 	if os.path.exists(filePath):
 		# using sublime
 		if re.search(r'ubl', editor):
-			diff = subprocess.Popen(['cat', filePath], stdout=subprocess.PIPE)
 			pr = subprocess.Popen(
 				editor,
 				stdout=subprocess.PIPE,
 				stderr=subprocess.PIPE,
 				shell=True,
-				stdin=diff.stdout
+				stdin=open(filePath)
 				)
 			pr.wait()
 			if pr.returncode == 0:
 				msg = pr.stdout.read()
 		else:
 			# using vim or nano
-			pr = subprocess.Popen([editor, filePath], stdin=open('/dev/tty', 'r'))
-			pr.wait()
-			if pr.returncode == 0:
-				with open(filePath, 'r') as fh:
-					msg = fh.readlines()
+			pr = subprocess.call([editor, filePath])
+			with open(filePath, 'r') as fh:
+				msg = fh.readlines()
 	os.remove(filePath)
 	return "".join(msg).replace("\n","<br>")
 
@@ -142,6 +152,7 @@ def preCheck(args):
 			message = ""
 			if args.compose:
 				message = launchEditor(editor)
+				print message
 			htmlDiff = getHtml(diffData.split("\n"))
 			message = "%s<br><br>%s" % (message, htmlDiff)
 			# email id to be sent from
@@ -192,9 +203,10 @@ def execGitCommand(command=None, verbose=False):
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		msg = pr.stdout.read()
 		err = pr.stderr.read()
-		txt = "\x1b[32mResult:\x1b[m\n"+msg if msg else "\x1b[31mError:\x1b[m\n"+err
+		if err:
+			print err
 		if verbose:
-			print "Executing '%s'\n%s" % (command, txt)
+			print "Executing '%s'\n\x1b[32mResult:\x1b[m\n%s" % (command, msg)
 		return msg, err
 
 def emailDiff(subject, emailTo, htmlDiff, attachment):
@@ -232,6 +244,7 @@ def pushBranch(VERBOSE):
 	"""
 
 	_, err = execGitCommand('git push')
+
 	if re.search(r'rejected', err):
 		txt = '\x1b[31mDo you want to try force push?\n'
 		print '%s%sEnter yes to force Push else any key to cancel\x1b[m' % (err, txt)
@@ -244,7 +257,8 @@ def pushBranch(VERBOSE):
 			print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
 			return True
 	else:
-		print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
+		if not err:
+			print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
 		return True
 	return False
 
