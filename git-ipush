@@ -70,41 +70,24 @@ def launchEditor(editor):
 		Returns:
 			msg(str): html formatted message
 	"""
-	# print editor.split(" ")[0], "\n", os.path.exists(editor.split(" ")[0])
 
-	# with tempfile.NamedTemporaryFile() as f:
-	# 	f.close()
-	# 	print "Exists or not: %s " % os.path.exists(f.name)
-	# 	if subprocess.call([editor.split(" ")[0], f.name]) != 0:
-	# 		raise IOError("{} exited with code {}.".format(editor.split(" ")[0], rc))
-	# 	with open(f.name) as g:
-	# 		return g.read()
-
-
-	filePath = os.path.join(os.getcwd(), "compose.txt")
-	wfh = open(filePath, 'w')
-	wfh.close()
-
-	if os.path.exists(filePath):
-		# using sublime
-		if re.search(r'ubl', editor):
-			pr = subprocess.Popen(
-				editor,
-				stdout=subprocess.PIPE,
-				stderr=subprocess.PIPE,
-				shell=True,
-				stdin=open(filePath)
-				)
-			pr.wait()
-			if pr.returncode == 0:
-				msg = pr.stdout.read()
+	with tempfile.NamedTemporaryFile(delete=False) as f:
+		f.close()
+		fileName = f.name
+		if re.search('Sublime_Text', editor):
+			launchEditor = [editor.split(" ")[0], "-w", fileName]
 		else:
-			# using vim or nano
-			pr = subprocess.call([editor, filePath])
-			with open(filePath, 'r') as fh:
-				msg = fh.readlines()
-	os.remove(filePath)
-	return "".join(msg).replace("\n","<br>")
+			launchEditor = [editor, fileName]
+
+		if subprocess.call(launchEditor) != 0:
+			raise IOError("%s exited with code." % (editor.split(" ")[0]))
+		msg = ''
+		with open(fileName) as temp_file:
+			temp_file.seek(0)
+			for line in temp_file.readlines():
+				msg += line
+
+			return "".join(msg).replace("\n","<br>")
 
 
 def preCheck(args):
@@ -145,24 +128,26 @@ def preCheck(args):
 
 		# only push that is displayed or the last commit
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			pushBranch(VERBOSE)
-			name , eror = execGitCommand('git format-patch -%s' % args.patches)
-			patches = filter(None, name.split("\n"))
-		if diffData:
-			message = ""
-			if args.compose:
-				message = launchEditor(editor)
-				print message
-			htmlDiff = getHtml(diffData.split("\n"))
-			message = "%s<br><br>%s" % (message, htmlDiff)
-			# email id to be sent from
-			fromId = config['user.email'] if config.has_key(
-				'user.email') else raw_input("Your Email:")
+			isPushed = pushBranch(VERBOSE)
+			if isPushed:
+				name, eror = execGitCommand('git format-patch -%s' % args.patches)
+				patches = filter(None, name.split("\n"))
+				if diffData:
+					message = ""
+					if args.compose:
+						message = launchEditor(editor)
 
-			mailto = args.to if args.to else raw_input("Who do you want to send to? ")
-			emailFrom = validate_address(fromId)
+					htmlDiff = getHtml(diffData.split("\n"))
+					remotePath, _ = execGitCommand('git config --get remote.origin.url')
+					message = "%s<br>git clone %s<br><br>%s" % (message, remotePath ,htmlDiff)
+					# email id to be sent from
+					fromId = config['user.email'] if config.has_key(
+						'user.email') else raw_input("Your Email: ")
 
-			emailDiff(subject, mailto, message, patches)
+					mailto = args.to if args.to else raw_input("Who do you want to send to? ")
+					emailFrom = validate_address(fromId)
+
+					emailDiff(subject, mailto, message, patches)
 	else:
 		print error.capitalize()
 
@@ -229,8 +214,9 @@ def emailDiff(subject, emailTo, htmlDiff, attachment):
 						password=os.getenv('PASS'), 
 						debug=False
 					)
-	mail.sendMessage(subject, htmlDiff, attachment, emailTo)
-	print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (
+	isSent = mail.sendMessage(subject, htmlDiff, attachment, emailTo)
+	if isSent:
+		print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (
 		subject, emailTo)
 
 def pushBranch(VERBOSE):
@@ -245,11 +231,19 @@ def pushBranch(VERBOSE):
 
 	_, err = execGitCommand('git push')
 
+	if err.split("\n")[0] == 'Everything up-to-date':
+		print "Do you want to continue?"
+		option = raw_input(['YES'])
+		if option.lower() in ['', 'y', 'yes']:
+			return True
+		else:
+			return False
+
 	if re.search(r'rejected', err):
 		txt = '\x1b[31mDo you want to try force push?\n'
-		print '%s%sEnter yes to force Push else any key to cancel\x1b[m' % (err, txt)
+		print '%s%sEnter \'git push -f\' to force Push else any key to cancel\x1b[m' % (err, txt)
 		# default value yes and hit enter without entering anything
-		answer = raw_input('[YES]')
+		answer = raw_input('>>')
 		if answer and answer.lower() not in ['yes', 'y', 'f', 'git push -f']:
 			print "Cancelled !!!"
 		else:

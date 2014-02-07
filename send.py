@@ -45,6 +45,9 @@ class EMail(object):
 				print er
 			finally:
 				server.quit()
+				if failed:
+					return False
+				return True
 
 		def prepareMail(self, subject, msgHTML, attachments, mailto):
 			"""	Prepare the email to send
