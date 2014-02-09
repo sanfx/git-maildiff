@@ -24,6 +24,8 @@
 ***git config --global ipush.smtpencryption tls*** 
 e.g. Gmail uses tls encryption
 
+if you forget to run the above setup the git ipush command will prompts each 
+one by one and update in .gitconfig the email password is stored in OS keychain.
 
 ###Usage
 

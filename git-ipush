@@ -4,6 +4,8 @@
 # command: git ipush
 
 import argparse
+import getpass
+import keyring
 import subprocess
 import os
 import re
@@ -44,6 +46,9 @@ def main():
 
 	args = parser.parse_args()
 	preCheck(args)
+
+def updateConfig(key, value):
+	execGitCommand('git config --global %s %s' % (key, value))
 
 
 def configDb():
@@ -89,6 +94,38 @@ def launchEditor(editor):
 
 			return "".join(msg).replace("\n","<br>")
 
+def setUpIpush(config):
+	"""	this function prompts user to enter email settings
+		for this git ipush command to store in .gitconfig
+		while password is stored in os keychain.
+
+		Args:
+			config(dict): existing config from .gitconfig
+	"""
+	# check if data in  global config
+	if not config.has_key('ipush.mailfrom'):
+		print "\x1b[32mOne time mail setup.\x1b[m"
+		print "Do you want to use your git email to send diffs or any other email address ?"
+		ret = raw_input('[YES]')
+		if ret.lower() in ['', 'yes', 'y']:
+			ret = config['user.email']
+			updateConfig('ipush.mailfrom', ret)
+		else:
+			ret = validate_address(ret)
+			execGitCommand('git ipush.mailfrom %s' % ret)
+		updateConfig('ipush.mailfrom', ret)
+		emailPwd = getpass.getpass(prompt=" Password: ")
+		keyring.set_password('ipush', ret, emailPwd)
+	# enter SMTP details for sending emails
+	if not config.has_key('ipush.smtpserver'):
+		print "Add SMTP details for '%s'." % ret
+		smtpServer = raw_input(" SMTP Server: ")
+		updateConfig('ipush.smtpserver', smtpServer)
+		smtpServerPort = raw_input(" SMTP Server Port: ")
+		updateConfig('ipush.smtpserverport', smtpServerPort)
+		smtpEncryption = raw_input(" Server Encryption: ")
+		updateConfig('ipush.smtpencryption', smtpEncryption)
+	return True
 
 def preCheck(args):
 	"""	This function do a pre-check of the repository state
@@ -140,9 +177,14 @@ def preCheck(args):
 					htmlDiff = getHtml(diffData.split("\n"))
 					remotePath, _ = execGitCommand('git config --get remote.origin.url')
 					message = "%s<br>git clone %s<br><br>%s" % (message, remotePath ,htmlDiff)
+
+					updateComplete = setUpIpush(config)
+					if updateComplete:
+						# update the user email info by reading config again
+						config = configDb()
+
 					# email id to be sent from
-					fromId = config['user.email'] if config.has_key(
-						'user.email') else raw_input("Your Email: ")
+					fromId = config['ipush.mailfrom']
 
 					mailto = args.to if args.to else raw_input("Who do you want to send to? ")
 					emailFrom = validate_address(fromId)
@@ -206,12 +248,13 @@ def emailDiff(subject, emailTo, htmlDiff, attachment):
 	htmlDiff = """%s<br><br>
 	Sent using git ipush<br>
 	git clone https://sanfx@bitbucket.org/sanfx/git-ipush.git""" % htmlDiff
-
+	emailInfo = configDb()
+	pwd = str(keyring.get_password('ipush', emailInfo['ipush.mailfrom']))
 	mail = send.EMail(
-						mailFrom=configDb()['ipush.mailfrom'], 
-						server=configDb()['ipush.smtpserver'], 
-						usrname=configDb()['ipush.mailfrom'].split('@')[0],
-						password=os.getenv('PASS'), 
+						mailfrom=emailInfo['ipush.mailfrom'], 
+						server=emailInfo['ipush.smtpserver'], 
+						usrname=emailInfo['ipush.mailfrom'].split('@')[0],
+						password=pwd, 
 						debug=False
 					)
 	isSent = mail.sendMessage(subject, htmlDiff, attachment, emailTo)

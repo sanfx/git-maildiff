@@ -9,9 +9,9 @@ import smtplib
 class EMail(object):
 		""" Class defines method to send email
 		"""
-		def __init__(self, mailFrom, server, usrname, password, debug=False):
+		def __init__(self, mailfrom, server, usrname, password, debug=False):
 				self.debug = debug
-				self.mailFrom = mailFrom
+				self.mailFrom = mailfrom
 				self.smtpserver = server
 				self.EMAIL_PORT = 587
 				self.usrname = usrname
