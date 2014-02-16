@@ -7,7 +7,6 @@ import argparse
 import getpass
 import keyring
 import subprocess
-import os
 import re
 import send
 import sys
@@ -40,16 +39,31 @@ def main():
 			parser.prog, parser.description, sys.version))
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
-	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',metavar='HEAD^ HEAD',
-		help='if present pass arguments to it as you \
+	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
+		metavar='HEAD^ HEAD', help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
 
 	args = parser.parse_args()
 	preCheck(args)
 
 def updateConfig(key, value):
+	"""	Function to update the global config git file.
+		Args:
+			key(string): key of the git command
+			value(string): value of the key
+	"""
 	execGitCommand('git config --global %s %s' % (key, value))
 
+
+def _guarantee_bool(function):
+	"""	A decorator that guarantees a true/false response.
+	"""
+	def wrapper(*args, **kargs):
+		try:
+			return bool(function(*args, **kargs))
+		except:
+			return False
+	return wrapper
 
 def configDb():
 	"""	Reads git global config file
@@ -78,21 +92,23 @@ def launchEditor(editor):
 
 	with tempfile.NamedTemporaryFile(delete=False) as f:
 		f.close()
-		fileName = f.name
-		if re.search('Sublime_Text', editor):
-			launchEditor = [editor.split(" ")[0], "-w", fileName]
+		if "-" in editor and editor not in ['vi', 'vim', 'nano', 'emacs']:
+			editor = re.sub(" -.*", "", editor)
+			openToEdit = [editor, f.name]
+			if re.search('Sublime', editor):
+				openToEdit = [editor, '-w', f.name]
 		else:
-			launchEditor = [editor, fileName]
+			openToEdit = [editor, f.name]
 
-		if subprocess.call(launchEditor) != 0:
+		if subprocess.call(openToEdit) != 0:
 			raise IOError("%s exited with code." % (editor.split(" ")[0]))
 		msg = ''
-		with open(fileName) as temp_file:
+		with open(f.name) as temp_file:
 			temp_file.seek(0)
 			for line in temp_file.readlines():
 				msg += line
 
-			return "".join(msg).replace("\n","<br>")
+			return "".join(msg).replace("\n", "<br>")
 
 def setUpIpush(config):
 	"""	this function prompts user to enter email settings
@@ -166,8 +182,9 @@ def preCheck(args):
 		# only push that is displayed or the last commit
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
 			isPushed = pushBranch(VERBOSE)
+
 			if isPushed:
-				name, eror = execGitCommand('git format-patch -%s' % args.patches)
+				name, _ = execGitCommand('git format-patch -%s' % args.patches)
 				patches = filter(None, name.split("\n"))
 				if diffData:
 					message = ""
@@ -176,18 +193,15 @@ def preCheck(args):
 
 					htmlDiff = getHtml(diffData.split("\n"))
 					remotePath, _ = execGitCommand('git config --get remote.origin.url')
-					message = "%s<br>git clone %s<br><br>%s" % (message, remotePath ,htmlDiff)
+					message = "%s<br>git clone %s<br><br>%s" % (message, remotePath, htmlDiff)
 
 					updateComplete = setUpIpush(config)
 					if updateComplete:
 						# update the user email info by reading config again
 						config = configDb()
 
-					# email id to be sent from
-					fromId = config['ipush.mailfrom']
-
-					mailto = args.to if args.to else raw_input("Who do you want to send to? ")
-					emailFrom = validate_address(fromId)
+					mailto = args.to if args.to else raw_input(
+						"Who do you want to send to? ")
 
 					emailDiff(subject, mailto, message, patches)
 	else:
@@ -210,7 +224,7 @@ def getHtml(diffData):
 			'#0079' if line.startswith('+') else '#0000')
 		tabs = line.count('\t')
 		lines.append("%s%s%s%s%s</span><br>" % 
-			((openTag, color, openTagEnd, nbsp*tabs ,line)))
+			((openTag, color, openTagEnd, nbsp*tabs, line)))
 	return ''.join(lines)
 
 
@@ -262,6 +276,7 @@ def emailDiff(subject, emailTo, htmlDiff, attachment):
 		print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (
 		subject, emailTo)
 
+@_guarantee_bool
 def pushBranch(VERBOSE):
 	"""	Pushes the branch to remote repository
 
