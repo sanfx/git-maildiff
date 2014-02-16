@@ -13,7 +13,7 @@ import sys
 import tempfile
 
 
-def validate_address(address):
+def __validate_address(address):
 	"""	If address looks like a valid e-mail address, return it. Otherwise
 		raise ArgumentTypeError.
 
@@ -32,7 +32,7 @@ def main():
 		help='if enabled will spit every command and its resulting data.')
 	parser.add_argument('-c', '--compose', action='store_true', 
 		help='compose message in default git editor to be sent prefixed with diff')
-	parser.add_argument('-to', type=validate_address, metavar='Email',
+	parser.add_argument('-to', type=__validate_address, metavar='Email',
 		help='enter a valid email you want to send to.', nargs='?')
 	parser.add_argument('-V', '--version', action='version',
 		version="%s : 1.0 %s   Required Python version: 2.7, Your Python Version: %s" % (
@@ -44,9 +44,9 @@ def main():
 		will do to git diff in inverted commas')
 
 	args = parser.parse_args()
-	preCheck(args)
+	__preCheck(args)
 
-def updateConfig(key, value):
+def __updateConfig(key, value):
 	"""	Function to update the global config git file.
 		Args:
 			key(string): key of the git command
@@ -125,25 +125,25 @@ def setUpIpush(config):
 		ret = raw_input('[YES]')
 		if ret.lower() in ['', 'yes', 'y']:
 			ret = config['user.email']
-			updateConfig('ipush.mailfrom', ret)
+			__updateConfig('ipush.mailfrom', ret)
 		else:
-			ret = validate_address(ret)
+			ret = __validate_address(ret)
 			execGitCommand('git ipush.mailfrom %s' % ret)
-		updateConfig('ipush.mailfrom', ret)
+		__updateConfig('ipush.mailfrom', ret)
 		emailPwd = getpass.getpass(prompt=" Password: ")
 		keyring.set_password('ipush', ret, emailPwd)
 	# enter SMTP details for sending emails
 	if not config.has_key('ipush.smtpserver'):
 		print "Add SMTP details for '%s'." % ret
 		smtpServer = raw_input(" SMTP Server: ")
-		updateConfig('ipush.smtpserver', smtpServer)
+		__updateConfig('ipush.smtpserver', smtpServer)
 		smtpServerPort = raw_input(" SMTP Server Port: ")
-		updateConfig('ipush.smtpserverport', smtpServerPort)
+		__updateConfig('ipush.smtpserverport', smtpServerPort)
 		smtpEncryption = raw_input(" Server Encryption: ")
-		updateConfig('ipush.smtpencryption', smtpEncryption)
+		__updateConfig('ipush.smtpencryption', smtpEncryption)
 	return True
 
-def preCheck(args):
+def __preCheck(args):
 	"""	This function do a pre-check of the repository state
 		and default value to variables from git config
 
@@ -181,7 +181,7 @@ def preCheck(args):
 
 		# only push that is displayed or the last commit
 		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			isPushed = pushBranch(VERBOSE)
+			isPushed = __pushBranch(VERBOSE)
 
 			if isPushed:
 				name, _ = execGitCommand('git format-patch -%s' % args.patches)
@@ -203,7 +203,7 @@ def preCheck(args):
 					mailto = args.to if args.to else raw_input(
 						"Who do you want to send to? ")
 
-					emailDiff(subject, mailto, message, patches)
+					__emailDiff(subject, mailto, message, patches)
 	else:
 		print error.capitalize()
 
@@ -250,7 +250,7 @@ def execGitCommand(command=None, verbose=False):
 			print "Executing '%s'\n\x1b[32mResult:\x1b[m\n%s" % (command, msg)
 		return msg, err
 
-def emailDiff(subject, emailTo, htmlDiff, attachment):
+def __emailDiff(subject, emailTo, htmlDiff, attachment):
 	""" This function send color diff via email
 
 		Args:
@@ -277,7 +277,7 @@ def emailDiff(subject, emailTo, htmlDiff, attachment):
 		subject, emailTo)
 
 @_guarantee_bool
-def pushBranch(VERBOSE):
+def __pushBranch(VERBOSE):
 	"""	Pushes the branch to remote repository
 
 		Args:
@@ -287,7 +287,7 @@ def pushBranch(VERBOSE):
 			(bool) True if push Succesfull else False 
 	"""
 
-	_, err = execGitCommand('git push')
+	_, err = execGitCommand('git push', True)
 
 	if err.split("\n")[0] == 'Everything up-to-date':
 		print "Do you want to continue?"
@@ -305,8 +305,7 @@ def pushBranch(VERBOSE):
 		if answer and answer.lower() not in ['yes', 'y', 'f', 'git push -f']:
 			print "Cancelled !!!"
 		else:
-			execGitCommand('git push -f', VERBOSE)
-			print "\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else ""
+			execGitCommand('git push -f', True)
 			return True
 	else:
 		if not err:
