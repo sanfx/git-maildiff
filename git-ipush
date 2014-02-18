@@ -74,7 +74,7 @@ def configDb():
 	# Read git config file
 	configFile, _ = execGitCommand('git config --list')
 	config = {}
-	for line in filter(None, configFile.split("\n")):
+	for line in (_line for _line in configFile.split("\n") if _line):
 		config[line.split("=")[0]] = line.split("=")[-1]
 
 	return config
@@ -175,7 +175,7 @@ def __preCheck(args):
 
 		cmtMesgs, _ = execGitCommand('git log origin/%s..HEAD --decorate --oneline' % branchName)
 		if cmtMesgs:
-			unPushComit = filter(None, cmtMesgs.split("\n"))
+			unPushComit = [cmits for cmits in cmtMesgs.split("\n") if cmits]
 			print ("\n\x1b[31mInitiating push for %s commits listed below to remote\x1b[32m/%s\x1b[m\n%s") % (
 				len(unPushComit), branchName, cmtMesgs)
 
@@ -185,7 +185,7 @@ def __preCheck(args):
 
 			if isPushed:
 				name, _ = execGitCommand('git format-patch -%s' % args.patches)
-				patches = filter(None, name.split("\n"))
+				patches = [item for item in name.split("\n") if item]
 				if diffData:
 					message = ""
 					if args.compose:
