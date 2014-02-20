@@ -49,4 +49,4 @@ when no -diff or -d flag is passed with value the default value is **git diff HE
 
 **Website:** [www.devilsan.com](http://www.devilsan.com "click to got to website")
 
-![Licence]( http://i.creativecommons.org/l/by-nc-sa/4.0/80x15.png )
+[![Licence]( http://i.creativecommons.org/l/by-nc-sa/4.0/80x15.png )](https://github.com/sanfx/git-iPush/blob/master/licence)
