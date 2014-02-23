@@ -5,11 +5,12 @@
 > **ipush** is git command to push and email diff in color
 
 ###Install
-1. Copy the downloaded git-ipush and send.py in the path where your environment variable PATH can access.
-2. make the git-ipush command executable. e.g.
-	chmod +x git-ipush
-3. Now you are ready to setup your config from from command line/terminal.
+Navigate to git-ipush direcoty you cloned/ downlaoded
+from terminal 
 
+run ***$ python setup.py install***
+
+and you are good to go.
 
 ###Setup Config
 

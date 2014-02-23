@@ -8,7 +8,7 @@ import getpass
 import keyring
 import subprocess
 import re
-import send
+import mailer.send as send
 import sys
 import tempfile
 
@@ -170,13 +170,13 @@ def __preCheck(args):
 	if 'fatal' not in error.split(":"):
 		modifiedData, error = execGitCommand('git status', VERBOSE)
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
-			print "\x1b[31m You have uncommited changes, Commit and try again\x1b[m"
+			print colorText('red', ' You have uncommited changes, Commit and try again')
 			return
 
 		cmtMesgs, _ = execGitCommand('git log origin/%s..HEAD --decorate --oneline' % branchName)
 		if cmtMesgs:
 			unPushComit = [cmits for cmits in cmtMesgs.split("\n") if cmits]
-			print ("\n\x1b[31mInitiating push for %s commits listed below to remote\x1b[32m/%s\x1b[m\n%s") % (
+			print colorText('red', '\nInitiating push for %s commits listed below to remote %s\n%s') % (
 				len(unPushComit), branchName, cmtMesgs)
 
 		# only push that is displayed or the last commit
@@ -205,8 +205,21 @@ def __preCheck(args):
 
 					__emailDiff(subject, mailto, message, patches)
 	else:
-		print error.capitalize()
+		print colorText('red', error.capitalize())
 
+def colorText(color, text):
+	colorCodes = {
+		'black':'30',
+		'red':'31',
+		'green':'32',
+		'yellow' :'33',
+		'blue':'34',
+		'magenta' :'35',
+		'cyan' :'36',
+ 		'white ' :'37',
+		}
+
+	return "\x1b[%sm%s\x1b[m" % (colorCodes[color], text)
 
 def getHtml(diffData):
 	"""	This method convertes git diff data to html color code
@@ -214,14 +227,15 @@ def getHtml(diffData):
 		Args:
 			diffData(sting): diff between commits in simple text
 	"""
-	openTag = "<span style='font-size: .80em; color: "
-	openTagEnd = "00;font-family: courier, arial, helvetica, sans-serif;'>"
+	openTag = """<span style='font-size:1.0em; color: """
+	openTagEnd = ";font-family: courier, arial, helvetica, sans-serif;'>"
 	nbsp = '&nbsp;&nbsp;&nbsp;&nbsp;'
 	lines = []
 
 	for line in diffData:
-		color = "#ff00" if line.startswith('-') else (
-			'#0079' if line.startswith('+') else '#0000')
+		color = "#ff0000" if line.startswith('-') else (
+			'#007900' if line.startswith('+') else (
+			'#B4009E' if line.startswith('@@') else '#000000'))
 		tabs = line.count('\t')
 		lines.append("%s%s%s%s%s</span><br>" % 
 			((openTag, color, openTagEnd, nbsp*tabs, line)))
@@ -246,8 +260,8 @@ def execGitCommand(command=None, verbose=False):
 		err = pr.stderr.read()
 		if err:
 			print err
-		if verbose:
-			print "Executing '%s'\n\x1b[32mResult:\x1b[m\n%s" % (command, msg)
+		if verbose and msg:
+			print "Executing '%s'\n %s" % (command, colorText('red', 'Result:\n%s' % msg))
 		return msg, err
 
 def __emailDiff(subject, emailTo, htmlDiff, attachment):
@@ -273,8 +287,8 @@ def __emailDiff(subject, emailTo, htmlDiff, attachment):
 					)
 	isSent = mail.sendMessage(subject, htmlDiff, attachment, emailTo)
 	if isSent:
-		print "\x1b[31m Diff of branch, %s sent to email: %s .\x1b[m" %  (
-		subject, emailTo)
+		print colorText('green', ' Diff of branch, %s sent to email: %s .' %  (
+		subject, emailTo))
 
 @_guarantee_bool
 def __pushBranch(VERBOSE):
