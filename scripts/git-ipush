@@ -11,6 +11,11 @@ import re
 import mailer.send as send
 import sys
 import tempfile
+from os import path
+
+v = open(path.join(path.split(path.dirname(__file__))[0], 'VERSION'))
+VERSION = v.readline().strip()
+v.close()
 
 
 def __validate_address(address):
@@ -35,8 +40,7 @@ def main():
 	parser.add_argument('-to', type=__validate_address, metavar='Email',
 		help='enter a valid email you want to send to.', nargs='?')
 	parser.add_argument('-V', '--version', action='version',
-		version="%s : 1.0 %s   Required Python version: 2.7, Your Python Version: %s" % (
-			parser.prog, parser.description, sys.version))
+		version="%s Ver: %s %s " % ( parser.prog, VERSION, parser.description))
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
