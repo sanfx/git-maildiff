@@ -258,6 +258,8 @@ def execGitCommand(command=None, verbose=False):
 			(tuple): string of Data and error if present
 	"""
 	if command:
+		# converts multiple spaces to single space
+		command = re.sub(' +',' ',command)
 		pr = subprocess.Popen(command, shell=True,
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		msg = pr.stdout.read()
