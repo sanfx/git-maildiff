@@ -4,13 +4,15 @@ from email.MIMEText import MIMEText
 from email.Utils import formatdate
 from email import Encoders
 import os
+import socket
 import smtplib
 
 class EMail(object):
 	""" Class defines method to send email
 	"""
-	def __init__(self, mailfrom, server, usrname, password, debug=False):
+	def __init__(self, mailfrom, server, usrname, password, logger, debug=False):
 		self.debug = debug
+		self._log = logger
 		self.mailFrom = mailfrom
 		self.smtpserver = server
 		self.EMAIL_PORT = 587
@@ -29,24 +31,27 @@ class EMail(object):
 		"""
 
 		msg = self.prepareMail(subject, msgContent, files, mailto)
-
-		# connect to server and send email
-		server = smtplib.SMTP(self.smtpserver, port=self.EMAIL_PORT)
-		server.ehlo()
-		# use encrypted SSL mode
-		server.starttls()
-		# to make starttls work
-		server.ehlo()
-		server.login(self.usrname, self.password)
-		server.set_debuglevel(self.debug)
 		try:
-			server.sendmail(self.mailFrom, mailto, msg.as_string())
-		except Exception as er:
-			print er
-			return False
-		finally:
-			server.quit()
-		return True
+			# connect to server and send email
+			server = smtplib.SMTP(self.smtpserver, port=self.EMAIL_PORT)
+			server.ehlo()
+		except socket.gaierror as err:
+			self._log.error(err)
+		else:
+			# use encrypted SSL mode
+			server.starttls()
+			# to make starttls work
+			server.ehlo()
+			server.login(self.usrname, self.password)
+			server.set_debuglevel(self.debug)
+			try:
+				server.sendmail(self.mailFrom, mailto, msg.as_string())
+			except Exception as er:
+				print er
+				return False
+			finally:
+				server.quit()
+			return True
 
 	def prepareMail(self, subject, msgHTML, attachments, mailto):
 		"""	Prepare the email to send
