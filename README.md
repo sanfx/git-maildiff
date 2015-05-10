@@ -2,10 +2,10 @@
 
 
 
-> **maildiff** is a simple git command to push and email diff in color
+> **maildiff** is a simple git command to email diff in color to reviewer/ co-worker.
 
 ###Install
-Navigate to git-maildiff direcoty you cloned/ downlaoded
+Navigate to git-maildiff directory you cloned/ downlaoded
 from terminal 
 
 run ***$ python setup.py install***
@@ -33,6 +33,14 @@ one by one and update in .gitconfig the email password is stored in OS keychain.
 **git maildiff** - will push the last commit and email the colored diff.
 
 **git maildiff -d 'HEAD^1'** - will email the diff but not push as we are requesting to do diff of uncommited tree.
+
+###Dependencies
+
+**argparse**
+**keyring**
+**logging**
+**colorlog**
+**colorama** (for windows only)
 
 ######Note
 when no -diff or -d flag is passed with value the default value is **git diff HEAD^ HEAD**

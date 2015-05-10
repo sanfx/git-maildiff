@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import mailer.send as send
+from colorlog import ColoredFormatter
 from os import path
 
 v = open(path.join(path.split(path.dirname(__file__))[0], 'VERSION'))
@@ -47,22 +48,39 @@ def main(appName):
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
 		metavar='HEAD^ HEAD', help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
-	parser.add_argument('-u', required=False, help='pass argument to email diff of \
-		uncommited changes.')
+	parser.add_argument('-u', required=False, action='store_true', help='pass argument \
+		to email diff of uncommited changes.')
 
 	args = parser.parse_args()
-	logging.basicConfig(level=logging.DEBUG)
 	logger = logging.getLogger(appName)
-	logger.setLevel(logging.DEBUG)
-	__preCheck(args, logger)
+	handler = logging.StreamHandler()
 
-def __updateConfig(log, key, value):
+	DATE_FORMAT = '%H:%M'
+	formatter = ColoredFormatter(
+		"%(log_color)s %(levelname)-2s %(name)s %(asctime)-2s%(reset)s %(message_log_color)s%(message)s",
+		secondary_log_colors={
+				'message': {
+						'ERROR':    'red',
+						'CRITICAL': 'red',
+						'INFO'	:	'cyan',
+						'WARNING'	:	'yellow'
+	 
+						}
+				},
+		datefmt=DATE_FORMAT,
+		)
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
+	logger.setLevel(logging.DEBUG)
+	__pre_Check(args, logger)
+
+def __update_config(log, key, value):
 	"""	Function to update the global config git file.
 		Args:
 			key(string): key of the git command
 			value(string): value of the key
 	"""
-	_execGitCommand(log, 'git config --global %s %s' % (key, value))
+	_exec_git_command(log, 'git config --global %s %s' % (key, value))
 
 
 def _guarantee_bool(function):
@@ -75,14 +93,14 @@ def _guarantee_bool(function):
 			return False
 	return wrapper
 
-def configDb(log):
+def config_db(log):
 	"""	Reads git global config file
 
 		Returns:
 			config(dict): git config settings
 	"""
 	# Read git config file
-	configFile, _ = _execGitCommand(log, 'git config --list')
+	configFile, _ = _exec_git_command(log, 'git config --list')
 	config = {}
 	for line in (_line for _line in configFile.split("\n") if _line):
 		config[line.split("=")[0]] = line.split("=")[-1]
@@ -120,7 +138,7 @@ def launchEditor(editor):
 
 			return "".join(msg).replace("\n", "<br>")
 
-def setUpmaildiff(log, config):
+def _setUp_maildiff(log, config):
 	"""	this function prompts user to enter email settings
 		for this git maildiff command to store in .gitconfig
 		while password is stored in os keychain.
@@ -131,36 +149,38 @@ def setUpmaildiff(log, config):
 	# check if data in  global config
 	if not config.has_key('maildiff.mailfrom'):
 		log.info("\x1b[32mFirst time mail setup.\x1b[m")
-		log.warning("Do you want to use your git email to send diffs or any other email address ?")
+		userEmail = config['user.email']
+		log.warning("Do you want to use your git email '%s' to send diffs or any other email address ?", userEmail)
 		ret = raw_input('[YES]')
 		if ret.lower() in ['', 'yes', 'y']:
-			ret = config['user.email']
-			__updateConfig(log, 'maildiff.mailfrom', ret)
+			ret = userEmail
+			__update_config(log, 'maildiff.mailfrom', ret)
 		else:
 			ret = __validate_address(ret)
-			_execGitCommand(log, 'git maildiff.mailfrom %s' % ret)
-		__updateConfig(log, 'maildiff.mailfrom', ret)
+			_exec_git_command(log, 'git maildiff.mailfrom %s' % ret)
+		__update_config(log, 'maildiff.mailfrom', ret)
+		log.info("Please enter password for the email: %s" , ret)
 		emailPwd = getpass.getpass(prompt=" Password: ")
 		keyring.set_password('maildiff', ret, emailPwd)
 	# enter SMTP details for sending emails
 	if not config.has_key('maildiff.smtpserver'):
 		log.info("Add SMTP details for '%s'.", ret)
 		smtpServer = raw_input(" SMTP Server: ")
-		__updateConfig(log, 'maildiff.smtpserver', smtpServer)
+		__update_config(log, 'maildiff.smtpserver', smtpServer)
 		smtpServerPort = raw_input(" SMTP Server Port: ")
-		__updateConfig(log, 'maildiff.smtpserverport', smtpServerPort)
+		__update_config(log, 'maildiff.smtpserverport', smtpServerPort)
 		smtpEncryption = raw_input(" Server Encryption: ")
-		__updateConfig(log, 'maildiff.smtpencryption', smtpEncryption)
+		__update_config(log, 'maildiff.smtpencryption', smtpEncryption)
 	return True
 
-def __preCheck(args, log):
+def __pre_Check(args, log):
 	"""	This function do a pre-check of the repository state
 		and default value to variables from git config
 
 		Args:
 			args(argparse.Namespace): data from git config
 	"""
-	config = configDb(log)
+	config = config_db(log)
 
 	editor = config['core.editor'] if config.has_key('core.editor') else 'vi'
 
@@ -168,26 +188,27 @@ def __preCheck(args, log):
 
 	diffCmd = 'git diff %s' % args.diff
 
-	branchName, _ = _execGitCommand(log, 'git rev-parse --abbrev-ref HEAD')
+	branchName, _ = _exec_git_command(log, 'git rev-parse --abbrev-ref HEAD')
 
 	if not branchName:
 		return
 
 	# stripping newline character which got appended when pulling branch name
 	branchName = branchName.split("\n")[0]
-	commitComment, _ = _execGitCommand(log, 'git log -1 --pretty=%B')
+	commitComment, _ = _exec_git_command(log, 'git log -1 --pretty=%B')
 	subject = "%s: %s" % (branchName, commitComment)
 
 	# check for fatal error when executing git command
-	diffData, error = _execGitCommand(log, diffCmd, VERBOSE)
+	diffData, error = _exec_git_command(log, diffCmd, VERBOSE)
 	if 'fatal' not in error.split(":"):
-		modifiedData, error = _execGitCommand(log, 'git status', VERBOSE)
+		modifiedData, error = _exec_git_command(log, 'git status', VERBOSE)
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
 			log.warning('You have uncommited changes.')
-			log.info("Use git maildiff -u to email diff of uncommited changes")
-			return
+			if not args.u:
+				log.info("Use git maildiff -u to email diff of uncommited changes")
+				return
 
-		cmtMesgs, _ = _execGitCommand(log, 'git log origin/%s..HEAD --decorate --oneline' % branchName)
+		cmtMesgs, _ = _exec_git_command(log, 'git log origin/%s..HEAD --decorate --oneline' % branchName)
 		if cmtMesgs:
 			unPushComit = [cmits for cmits in cmtMesgs.split("\n") if cmits]
 			log.info('Initiating push for %s commits listed below to remote %s\n\n%s',
@@ -195,35 +216,30 @@ def __preCheck(args, log):
 				branchName, 
 				cmtMesgs)
 
-		# only push that is displayed or the last commit
-		# if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			# isPushed = __pushBranch(log, VERBOSE)
-
-			# if isPushed:
-		name, _ = _execGitCommand(log, 'git format-patch -%s' % args.patches)
+		name, _ = _exec_git_command(log, 'git format-patch -%s' % args.patches)
 		patches = [item for item in name.split("\n") if item]
 		if diffData:
 			message = ""
 			if args.compose:
 				message = launchEditor(editor)
 
-			htmlDiff = getHtml(diffData.split("\n"))
-			remotePath, _ = _execGitCommand(log, 'git config --get remote.origin.url')
+			htmlDiff = get_Html(diffData.split("\n"))
+			remotePath, _ = _exec_git_command(log, 'git config --get remote.origin.url')
 			message = "%s<br>git clone %s<br><br>%s" % (message, remotePath, htmlDiff)
 
-			updateComplete = setUpmaildiff(log, config)
+			updateComplete = _setUp_maildiff(log, config)
 			if updateComplete:
 				# update the user email info by reading config again
-				config = configDb(log)
+				config = config_db(log)
 
 			mailto = args.to if args.to else raw_input(
 				"Who do you want to send to? ")
 
-			__emailDiff(log, subject, mailto, message, patches)
+			__email_diff(log, subject, mailto, message, patches)
 	else:
 		log.error(error.capitalize())
 
-def getHtml(diffData):
+def get_Html(diffData):
 	"""	This method convertes git diff data to html color code
 
 		Args:
@@ -244,7 +260,7 @@ def getHtml(diffData):
 	return ''.join(lines)
 
 
-def _execGitCommand(log, command, verbose=False):
+def _exec_git_command(log, command, verbose=False):
 	"""	Function used to get data out of git commads
 		and errors in case of failure.
 
@@ -269,7 +285,8 @@ def _execGitCommand(log, command, verbose=False):
 		log.info("Executing '%s' %s", command, msg)
 	return msg, err
 
-def __emailDiff(log, subject, emailTo, htmlDiff, attachment):
+
+def __email_diff(log, subject, emailTo, htmlDiff, attachment):
 	""" This function send color diff via email
 
 		Args:
@@ -281,7 +298,7 @@ def __emailDiff(log, subject, emailTo, htmlDiff, attachment):
 	htmlDiff = """%s<br><br>
 	Sent using git maildiff<br>
 	git clone https://sanfx@bitbucket.org/sanfx/git-maildiff.git""" % htmlDiff
-	emailInfo = configDb(log)
+	emailInfo = config_db(log)
 	pwd = str(keyring.get_password('maildiff', emailInfo['maildiff.mailfrom']))
 	mail = send.EMail(
 						mailfrom=emailInfo['maildiff.mailfrom'], 
@@ -300,43 +317,6 @@ def __emailDiff(log, subject, emailTo, htmlDiff, attachment):
 		if isSent:
 			msg = ' Diff of branch, %s sent to email: %s .' % (subject, emailTo)
 			log.info(msg)
-
-@_guarantee_bool
-def __pushBranch(log, VERBOSE):
-	"""	Pushes the branch to remote repository
-
-		Args:
-			VERBOSE(bool): defines whether to spit out which command
-			is being executed and result of command.
-		Return:
-			(bool) True if push Succesfull else False 
-	"""
-
-	_, err = _execGitCommand(log, 'git push', True)
-
-	if err.split("\n")[0] == 'Everything up-to-date':
-		log.warning("Do you want to continue?")
-		option = raw_input(['YES'])
-		if option.lower() in ['', 'y', 'yes']:
-			return True
-		else:
-			return False
-
-	if re.search(r'rejected', err):
-		txt = '\x1b[31mDo you want to try force push?\n'
-		log.warning('%s%sEnter \'git push -f\' to force Push else any key to cancel\x1b[m',err, txt)
-		# default value yes and hit enter without entering anything
-		answer = raw_input('>>')
-		if answer and answer.lower() not in ['yes', 'y', 'f', 'git push -f']:
-			log.info("Cancelled !!!")
-		else:
-			_execGitCommand(log, 'git push -f', True)
-			return True
-	else:
-		if not err:
-			log.info("\x1b[33mPush Succesfull !\x1b[m" if VERBOSE else "")
-		return True
-	return False
 
 
 if __name__ == '__main__':
