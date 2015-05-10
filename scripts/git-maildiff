@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*-coding: utf8-*-
-# file: git-ipush
-# command: git ipush
+# file: git-maildiff
+# command: git maildiff
 
 import argparse
 import getpass
@@ -47,6 +47,8 @@ def main(appName):
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
 		metavar='HEAD^ HEAD', help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
+	parser.add_argument('-u', required=False, help='pass argument to email diff of \
+		uncommited changes.')
 
 	args = parser.parse_args()
 	logging.basicConfig(level=logging.DEBUG)
@@ -118,37 +120,37 @@ def launchEditor(editor):
 
 			return "".join(msg).replace("\n", "<br>")
 
-def setUpIpush(log, config):
+def setUpmaildiff(log, config):
 	"""	this function prompts user to enter email settings
-		for this git ipush command to store in .gitconfig
+		for this git maildiff command to store in .gitconfig
 		while password is stored in os keychain.
 
 		Args:
 			config(dict): existing config from .gitconfig
 	"""
 	# check if data in  global config
-	if not config.has_key('ipush.mailfrom'):
+	if not config.has_key('maildiff.mailfrom'):
 		log.info("\x1b[32mFirst time mail setup.\x1b[m")
 		log.warning("Do you want to use your git email to send diffs or any other email address ?")
 		ret = raw_input('[YES]')
 		if ret.lower() in ['', 'yes', 'y']:
 			ret = config['user.email']
-			__updateConfig(log, 'ipush.mailfrom', ret)
+			__updateConfig(log, 'maildiff.mailfrom', ret)
 		else:
 			ret = __validate_address(ret)
-			_execGitCommand(log, 'git ipush.mailfrom %s' % ret)
-		__updateConfig(log, 'ipush.mailfrom', ret)
+			_execGitCommand(log, 'git maildiff.mailfrom %s' % ret)
+		__updateConfig(log, 'maildiff.mailfrom', ret)
 		emailPwd = getpass.getpass(prompt=" Password: ")
-		keyring.set_password('ipush', ret, emailPwd)
+		keyring.set_password('maildiff', ret, emailPwd)
 	# enter SMTP details for sending emails
-	if not config.has_key('ipush.smtpserver'):
+	if not config.has_key('maildiff.smtpserver'):
 		log.info("Add SMTP details for '%s'.", ret)
 		smtpServer = raw_input(" SMTP Server: ")
-		__updateConfig(log, 'ipush.smtpserver', smtpServer)
+		__updateConfig(log, 'maildiff.smtpserver', smtpServer)
 		smtpServerPort = raw_input(" SMTP Server Port: ")
-		__updateConfig(log, 'ipush.smtpserverport', smtpServerPort)
+		__updateConfig(log, 'maildiff.smtpserverport', smtpServerPort)
 		smtpEncryption = raw_input(" Server Encryption: ")
-		__updateConfig(log, 'ipush.smtpencryption', smtpEncryption)
+		__updateConfig(log, 'maildiff.smtpencryption', smtpEncryption)
 	return True
 
 def __preCheck(args, log):
@@ -181,7 +183,8 @@ def __preCheck(args, log):
 	if 'fatal' not in error.split(":"):
 		modifiedData, error = _execGitCommand(log, 'git status', VERBOSE)
 		if any([re.search(word, modifiedData) for word in ['modified', 'untracked']]):
-			log.warning('You have uncommited changes, Commit and try again')
+			log.warning('You have uncommited changes.')
+			log.info("Use git maildiff -u to email diff of uncommited changes")
 			return
 
 		cmtMesgs, _ = _execGitCommand(log, 'git log origin/%s..HEAD --decorate --oneline' % branchName)
@@ -193,46 +196,32 @@ def __preCheck(args, log):
 				cmtMesgs)
 
 		# only push that is displayed or the last commit
-		if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
-			isPushed = __pushBranch(log, VERBOSE)
+		# if diffCmd in ['git diff HEAD^ HEAD', 'git diff HEAD~ HEAD']:
+			# isPushed = __pushBranch(log, VERBOSE)
 
-			if isPushed:
-				name, _ = _execGitCommand(log, 'git format-patch -%s' % args.patches)
-				patches = [item for item in name.split("\n") if item]
-				if diffData:
-					message = ""
-					if args.compose:
-						message = launchEditor(editor)
+			# if isPushed:
+		name, _ = _execGitCommand(log, 'git format-patch -%s' % args.patches)
+		patches = [item for item in name.split("\n") if item]
+		if diffData:
+			message = ""
+			if args.compose:
+				message = launchEditor(editor)
 
-					htmlDiff = getHtml(diffData.split("\n"))
-					remotePath, _ = _execGitCommand(log, 'git config --get remote.origin.url')
-					message = "%s<br>git clone %s<br><br>%s" % (message, remotePath, htmlDiff)
+			htmlDiff = getHtml(diffData.split("\n"))
+			remotePath, _ = _execGitCommand(log, 'git config --get remote.origin.url')
+			message = "%s<br>git clone %s<br><br>%s" % (message, remotePath, htmlDiff)
 
-					updateComplete = setUpIpush(log, config)
-					if updateComplete:
-						# update the user email info by reading config again
-						config = configDb(log)
+			updateComplete = setUpmaildiff(log, config)
+			if updateComplete:
+				# update the user email info by reading config again
+				config = configDb(log)
 
-					mailto = args.to if args.to else raw_input(
-						"Who do you want to send to? ")
+			mailto = args.to if args.to else raw_input(
+				"Who do you want to send to? ")
 
-					__emailDiff(log, subject, mailto, message, patches)
+			__emailDiff(log, subject, mailto, message, patches)
 	else:
 		log.error(error.capitalize())
-
-def colorText(color, text):
-	colorCodes = {
-		'black':'30',
-		'red':'31',
-		'green':'32',
-		'yellow' :'33',
-		'blue':'34',
-		'magenta' :'35',
-		'cyan' :'36',
- 		'white ' :'37',
-		}
-
-	return "\x1b[%sm%s\x1b[m" % (colorCodes[color], text)
 
 def getHtml(diffData):
 	"""	This method convertes git diff data to html color code
@@ -255,7 +244,7 @@ def getHtml(diffData):
 	return ''.join(lines)
 
 
-def _execGitCommand(log, command=None, verbose=False):
+def _execGitCommand(log, command, verbose=False):
 	"""	Function used to get data out of git commads
 		and errors in case of failure.
 
@@ -266,20 +255,19 @@ def _execGitCommand(log, command=None, verbose=False):
 		Return:
 			(tuple): string of Data and error if present
 	"""
-	if command:
-		# converts multiple spaces to single space
-		command = re.sub(' +',' ',command)
-		pr = subprocess.Popen(command, shell=True,
-			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		msg = pr.stdout.read()
-		err = pr.stderr.read()
-		if err:
-			log.error(err)
-			if 'Could not resolve host' in err:
-				return
-		if verbose and msg:
-			log.info("Executing '%s' %s", command, msg)
-		return msg, err
+	# converts multiple spaces to single space
+	command = re.sub(' +',' ',command)
+	pr = subprocess.Popen(command, shell=True,
+		stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	msg = pr.stdout.read()
+	err = pr.stderr.read()
+	if err:
+		log.error(err)
+		if 'Could not resolve host' in err:
+			return
+	if verbose and msg:
+		log.info("Executing '%s' %s", command, msg)
+	return msg, err
 
 def __emailDiff(log, subject, emailTo, htmlDiff, attachment):
 	""" This function send color diff via email
@@ -291,14 +279,14 @@ def __emailDiff(log, subject, emailTo, htmlDiff, attachment):
 	"""
 	# add tool signature
 	htmlDiff = """%s<br><br>
-	Sent using git ipush<br>
-	git clone https://sanfx@bitbucket.org/sanfx/git-ipush.git""" % htmlDiff
+	Sent using git maildiff<br>
+	git clone https://sanfx@bitbucket.org/sanfx/git-maildiff.git""" % htmlDiff
 	emailInfo = configDb(log)
-	pwd = str(keyring.get_password('ipush', emailInfo['ipush.mailfrom']))
+	pwd = str(keyring.get_password('maildiff', emailInfo['maildiff.mailfrom']))
 	mail = send.EMail(
-						mailfrom=emailInfo['ipush.mailfrom'], 
-						server=emailInfo['ipush.smtpserver'], 
-						usrname=emailInfo['ipush.mailfrom'].split('@')[0],
+						mailfrom=emailInfo['maildiff.mailfrom'], 
+						server=emailInfo['maildiff.smtpserver'], 
+						usrname=emailInfo['maildiff.mailfrom'].split('@')[0],
 						password=pwd,
 						logger=log,
 						debug=False
