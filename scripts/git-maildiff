@@ -20,6 +20,31 @@ VERSION = v.readline().strip()
 v.close()
 
 
+EPILOG = """	Utility to email the color diff and patches in email from shell.
+
+	Examples:
+
+	 \x1b[36mgit %s --compose\x1b[m
+		compose message in default git editor to be sent prefixed with diff of changes.
+
+	 \x1b[36mgit %s -u -to skysam@gmail.cam asksam@live.com\x1b[m
+		if you have uncommited chanegs you can use this flag to send diff of uncommited
+		changes compared to the last commit head. you can simultaneusly send to multiple
+		recipients as in this case separated by space between skysam@gmail.cam asksam@live.com
+
+	 \x1b[36mgit %s -to --compse\x1b[m
+		email address to whom you want to send to, along with --compose flag to write
+		content of email message.
+
+	 \x1b[36mgit %s --compose --patches 4 -to skysam@gmail.cam\x1b[m
+		first flag will cause text editor to open for you to compose message and then
+		--patches will flag will take 4 number of last commit diffs to be attached and
+		emailed to skysan@gmail.cam
+
+	 \x1b[36mgit %s -d 'HEAD^ HEAD' -to skysam@gmail.cam\x1b[m
+		if present pass arguments to it as you will do to git diff in inverted commas.
+		"""
+
 def __validate_address(address):
 	"""	If address looks like a valid e-mail address, return it. Otherwise
 		raise ArgumentTypeError.
@@ -34,13 +59,14 @@ def __validate_address(address):
 
 def main(appName):
 	parser = argparse.ArgumentParser(prog=appName,
-		description='Utility to push the last commit and email the color diff')
+		description=__doc__, epilog=EPILOG% tuple([appName] * EPILOG.count('%s')), 
+		formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('-v', '--verbose', action='store_true', 
 		help='if enabled will spit every command and its resulting data.')
 	parser.add_argument('-c', '--compose', action='store_true', 
 		help='compose message in default git editor to be sent prefixed with diff')
-	parser.add_argument('-to', type=__validate_address, metavar='Email',
-		help='enter a valid email you want to send to.', nargs='?')
+	parser.add_argument('-to', type=__validate_address, metavar='Email', nargs='+',
+		help='enter a valid email you want to send to.')
 	parser.add_argument('-V', '--version', action='version',
 		version="%s Ver: %s %s " % ( parser.prog, VERSION, parser.description))
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
@@ -186,7 +212,7 @@ def __pre_Check(args, log):
 
 	VERBOSE = args.verbose
 
-	diffCmd = 'git diff %s' % args.diff
+	diffCmd = 'git diff' if args.u  else 'git diff %s' % args.diff
 
 	branchName, _ = _exec_git_command(log, 'git rev-parse --abbrev-ref HEAD')
 
@@ -208,14 +234,6 @@ def __pre_Check(args, log):
 				log.info("Use git maildiff -u to email diff of uncommited changes")
 				return
 
-		cmtMesgs, _ = _exec_git_command(log, 'git log origin/%s..HEAD --decorate --oneline' % branchName)
-		if cmtMesgs:
-			unPushComit = [cmits for cmits in cmtMesgs.split("\n") if cmits]
-			log.info('Initiating push for %s commits listed below to remote %s\n\n%s',
-				len(unPushComit), 
-				branchName, 
-				cmtMesgs)
-
 		name, _ = _exec_git_command(log, 'git format-patch -%s' % args.patches)
 		patches = [item for item in name.split("\n") if item]
 		if diffData:
@@ -232,10 +250,11 @@ def __pre_Check(args, log):
 				# update the user email info by reading config again
 				config = config_db(log)
 
-			mailto = args.to if args.to else raw_input(
-				"Who do you want to send to? ")
-
-			__email_diff(log, subject, mailto, message, patches)
+			mailtos = args.to if args.to else [raw_input(
+				"Who do you want to send to ?")]
+			for mailto in mailtos:
+				log.info("Sending to %s", mailto)
+				__email_diff(log, subject, mailto, message, patches)
 	else:
 		log.error(error.capitalize())
 
