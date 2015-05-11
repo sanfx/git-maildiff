@@ -1,7 +1,6 @@
 # Git maildiff
 
 
-
 > **maildiff** is a simple git command to email diff in color to reviewer/ co-worker.
 
 ###Install
@@ -30,25 +29,30 @@ one by one and update in .gitconfig the email password is stored in OS keychain.
 
 ###Usage
 
-**git maildiff** - will push the last commit and email the colored diff.
+**git maildiff** - Email the diff of commited or uncommited changes in colored to multiple recipients and allows attaching patches.
 
-**git maildiff -d 'HEAD^1'** - will email the diff but not push as we are requesting to do diff of uncommited tree.
+**git maildiff -d 'HEAD^1'** - will email the diff.
+
+when no -diff or -d flag is passed with value the default value is **git diff HEAD^ HEAD**
+
+**git maildiff -to email@domain.com** - will email diff to this email address.
+
+**git maildiff -v** - use the -v flag to enable verbosity and display what command is run and what is the result of executed command.
+
+**type git maildiff -h** in shell for more help.
 
 ###Dependencies
 
 **argparse**
+
 **keyring**
+
 **logging**
+
 **colorlog**
+
 **colorama** (for windows only)
 
-######Note
-when no -diff or -d flag is passed with value the default value is **git diff HEAD^ HEAD**
-
-
-**git maildiff -to email@domain.com** - will push the last commit and email diff to this email address.
-
- **git maildiff -v** - use the -v flag to enable verbosity and display what command is run and what is the result of executed command.
 
 ######Type **git maildiff -h** for help in command line/ terminal
  
