@@ -41,6 +41,13 @@ when no -diff or -d flag is passed with value the default value is **git diff HE
 
 **type git maildiff -h** in shell for more help.
 
+###Note
+
+If you are behind a proxy server, and you are having issues accessing git repository you can update gitconfig to add
+proxy settings like 
+
+	git config --global http.proxy http://mydomain\\myusername:mypassword@myproxyserver:8080
+
 ###Dependencies
 
 **argparse**
