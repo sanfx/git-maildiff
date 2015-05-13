@@ -4,12 +4,12 @@
    contain the root `toctree` directive.
 
 Welcome to maildiff git command documentation!
-====================================
+==============================================
 
 Git command to email the color diff and patches in email from shell to single or multiple users.
 
 User Notes:
-====================================
+===========
 
 **git maildiff** - Email the diff of commited or uncommited changes in colored to multiple recipients and allows attaching patches.
 
@@ -24,6 +24,8 @@ when no -diff or -d flag is passed with value the default value is **git diff HE
 **type git maildiff -h** in shell for more help.
 .. toctree::
    :maxdepth: 2
+   send
+   maildiff
 
 Requirements:
 =============
@@ -35,7 +37,7 @@ Install Notes
 Navigate to git-maildiff directory you cloned/ downlaoded
 from terminal 
 
-run ***$ python setup.py install***
+run **$ python setup.py install**
 
 and you are good to go.
 

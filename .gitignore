@@ -9,3 +9,4 @@ chart.png
 *.sublime-workspace
 *.sublime-project
 notes.txt
+*.glue

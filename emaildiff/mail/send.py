@@ -23,11 +23,17 @@ class EMail(object):
 	def sendMessage(self, subject, msgContent, files, mailto):
 		"""	Send the email message
 
-			Args:
-				subject(string): subject for the email
-				msgContent(string): email message Content
-				files(List): list of files to be attached
-				mailto(string): email address to be sent to
+			:param subject: subject for the email
+			:type subject: str
+
+			:param msgContent: email message Content
+			:type msgContent: str
+
+			:param files: list of files to be attached
+			:type file: list
+
+			:param mailto: email address to be sent to
+			:type mailto: str
 		"""
 
 		msg = self.prepareMail(subject, msgContent, files, mailto)
@@ -55,10 +61,18 @@ class EMail(object):
 
 	def prepareMail(self, subject, msgHTML, attachments, mailto):
 		"""	Prepare the email to send
-			Args:
-				subject(string): subject of the email.
-				msgHTML(string): HTML formatted email message Content.
-				attachments(List): list of file paths to be attached with email. 
+
+			:param subject: subject of the email.
+			:type subject: (str)
+
+			:param msgHTML: HTML formatted email message Content.
+			:type msgHTML: str
+
+			:param attachments: list of file paths to be attached with email.
+			:type attachments: list
+
+			:Returns msg: message to be sent
+			:type msg: str
 		"""
 		msg = MIMEMultipart()
 		msg['From'] = self.mailFrom
