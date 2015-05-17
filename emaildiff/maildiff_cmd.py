@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 
+from colorlog import ColoredFormatter
 from emaildiff.mail import send as send
 from os import path
 
@@ -50,13 +51,13 @@ def __validate_address(address):
 		return address
 	raise argparse.ArgumentTypeError('Invalid e-mail address: %s' % address)
 
-def _main(appName, logger):
+def main():
 	"""	
 		This function parses the argumets passed from commandline.
+		creates a logger and inject it to function.
 
-      :param appName: name of this git command from shell
-      :type  appName: str
 	"""
+	appName = path.basename(sys.argv[0]).split('-')[-1]
 	parser = argparse.ArgumentParser(prog=appName,
 		description=__doc__, epilog=EPILOG% tuple([appName] * EPILOG.count('%s')), 
 		formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -75,6 +76,27 @@ def _main(appName, logger):
 		to email diff of uncommited changes.')
 
 	args = parser.parse_args()
+
+	logger = logging.getLogger(appName)
+	handler = logging.StreamHandler()
+
+	DATE_FORMAT = '%H:%M'
+	formatter = ColoredFormatter(
+		"%(log_color)s%(name)s %(asctime)-2s%(reset)s %(message_log_color)s%(message)s",
+		secondary_log_colors={
+				'message': {
+						'ERROR': 'red',
+						'CRITICAL': 'red',
+						'INFO': 'cyan',
+						'WARNING': 'yellow'
+	 
+						}
+				},
+		datefmt=DATE_FORMAT,
+		)
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
+	logger.setLevel(logging.DEBUG)
 
 	__pre_Check(args, logger)
 
