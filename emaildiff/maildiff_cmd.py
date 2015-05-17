@@ -1,7 +1,3 @@
-#! /usr/bin/env python
-# -*-coding: utf8-*-
-# file: git-maildiff
-# command: git maildiff
 
 import argparse
 import getpass
@@ -12,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 from emaildiff.mail import send as send
-from colorlog import ColoredFormatter
+
 
 from os import path
 import version
@@ -58,10 +54,9 @@ def __validate_address(address):
 		return address
 	raise argparse.ArgumentTypeError('Invalid e-mail address: %s' % address)
 
-def main(appName):
+def _main(appName, logger):
 	"""	
-		This function parses the argumets passed from commandline and
-		and creates a logger to be passed to be injected along functions.
+		This function parses the argumets passed from commandline.
 
       :param appName: name of this git command from shell
       :type  appName: str
@@ -86,26 +81,7 @@ def main(appName):
 		to email diff of uncommited changes.')
 
 	args = parser.parse_args()
-	logger = logging.getLogger(appName)
-	handler = logging.StreamHandler()
 
-	DATE_FORMAT = '%H:%M'
-	formatter = ColoredFormatter(
-		"%(log_color)s %(levelname)-2s %(name)s %(asctime)-2s%(reset)s %(message_log_color)s%(message)s",
-		secondary_log_colors={
-				'message': {
-						'ERROR': 'red',
-						'CRITICAL': 'red',
-						'INFO': 'cyan',
-						'WARNING': 'yellow'
-	 
-						}
-				},
-		datefmt=DATE_FORMAT,
-		)
-	handler.setFormatter(formatter)
-	logger.addHandler(handler)
-	logger.setLevel(logging.DEBUG)
 	__pre_Check(args, logger)
 
 def __update_config(log, key, value):
@@ -270,7 +246,7 @@ def __pre_Check(args, log):
 			mailtos = args.to if args.to else [raw_input(
 				"Who do you want to send to ?")]
 			for mailto in mailtos:
-				log.info("Sending to %s", mailto)
+				log.info("Trying to send to %s", mailto)
 				__email_diff(log, subject, mailto, message, patches)
 	else:
 		log.error(error.capitalize())

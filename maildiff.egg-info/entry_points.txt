@@ -1,0 +1,3 @@
+[console_scripts]
+git<dash>maildiff = scripts.maildiff_cmd:_main
+

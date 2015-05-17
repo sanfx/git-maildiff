@@ -4,8 +4,35 @@
 # command: git maildiff
 
 import sys
+import logging
+from colorlog import ColoredFormatter
+
 from emaildiff import maildiff_cmd as _cmd
+
+def main(appName):
+	logger = logging.getLogger(appName)
+	handler = logging.StreamHandler()
+
+	DATE_FORMAT = '%H:%M'
+	formatter = ColoredFormatter(
+		"%(log_color)s%(name)s %(asctime)-2s%(reset)s %(message_log_color)s%(message)s",
+		secondary_log_colors={
+				'message': {
+						'ERROR': 'red',
+						'CRITICAL': 'red',
+						'INFO': 'cyan',
+						'WARNING': 'yellow'
+	 
+						}
+				},
+		datefmt=DATE_FORMAT,
+		)
+	handler.setFormatter(formatter)
+	logger.addHandler(handler)
+	logger.setLevel(logging.DEBUG)
+	_cmd._main(appName, logger)
+
 
 if __name__ == '__main__':
 	appName = sys.argv[0].split("-")[-1]
-	sys.exit(_cmd.main(appName))
+	sys.exit(main(appName))

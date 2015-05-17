@@ -4,12 +4,14 @@
 > **maildiff** is a simple git command to email diff in color to reviewer/ co-worker.
 
 ###Install
-Navigate to git-maildiff directory you cloned/ downlaoded
-from terminal 
+Navigate to git-maildiff directory you cloned or downlaoded from terminal 
 
-run ***$ python setup.py install***
-
+run ***$ pip install .***
+where . refers to your current working directory i.e. inside git-maildiff
 and you are good to go.
+
+###Uninstall
+pip  uninstall  maildiff
 
 ###Setup Config
 
