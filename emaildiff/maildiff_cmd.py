@@ -120,7 +120,7 @@ def config_db(log):
 
 def launchEditor(editor):
 	"""	
-		This function launchs the default git editor
+		This function launches the default git editor
 		set in git config for user to compose message
 		to be sent along with git diff.
 
@@ -246,7 +246,7 @@ def __pre_Check(args, log):
 		log.error(error.capitalize())
 
 def get_Html(diffData):
-	"""	This method convertes git diff data to html color code
+	"""	This method converts git diff data to html color code
 
 		:param diffData: diff between commits in simple text
 		:type diffData: str
