@@ -20,7 +20,6 @@ with open('requirements.txt', 'r') as reqh:
 
 v = open(path.join(path.dirname(__file__), 'VERSION'))
 VERSION = v.readline().strip()
-print "VERSION: %s" % VERSION
 v.close()
 
 setup(
@@ -38,6 +37,6 @@ setup(
 	install_requires=install_reqs,
 	entry_points={
 	'console_scripts':
-		['git-maildiff=scripts.maildiff_cmd:_main']
+		['git<dash>maildiff=emaildiff.maildiff_cmd:_main']
 				}
 )

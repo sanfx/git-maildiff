@@ -30,7 +30,7 @@ class EMail(object):
 			:type msgContent: str
 
 			:param files: list of files to be attached
-			:type file: list
+			:type files: list
 
 			:param mailto: email address to be sent to
 			:type mailto: str
@@ -63,7 +63,7 @@ class EMail(object):
 		"""	Prepare the email to send
 
 			:param subject: subject of the email.
-			:type subject: (str)
+			:type subject: str
 
 			:param msgHTML: HTML formatted email message Content.
 			:type msgHTML: str

@@ -1,5 +1,7 @@
 *.png
 *.jpg
+*.egg
+*.gz
 *.pyo
 build
 chart.png

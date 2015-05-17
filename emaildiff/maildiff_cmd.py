@@ -7,13 +7,9 @@ import re
 import subprocess
 import sys
 import tempfile
+
 from emaildiff.mail import send as send
-
-
 from os import path
-import version
-
-VERSION = version.__release_version__
 
 
 EPILOG = """	Utility to email the color diff and patches in email from shell.
@@ -70,8 +66,6 @@ def _main(appName, logger):
 		help='compose message in default git editor to be sent prefixed with diff')
 	parser.add_argument('-to', type=__validate_address, metavar='Email', nargs='+',
 		help='enter a valid email you want to send to.')
-	parser.add_argument('-V', '--version', action='version',
-		version="%s Ver: %s %s " % ( parser.prog, VERSION, parser.description))
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',

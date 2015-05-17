@@ -1,10 +1,10 @@
 LICENSE
 MANIFEST.in
 VERSION
+setup.cfg
 setup.py
 emaildiff/__init__.py
 emaildiff/maildiff_cmd.py
-emaildiff/version.py
 emaildiff/mail/__init__.py
 emaildiff/mail/send.py
 maildiff.egg-info/PKG-INFO
