@@ -1,4 +1,4 @@
-# Git maildiff
+# git maildiff
 
 
 > **maildiff** is a simple git command to email diff in color to reviewer/ co-worker.
@@ -6,24 +6,25 @@
 ###Install
 Navigate to git-maildiff directory you cloned or downlaoded from terminal 
 
-run ***$ pip install .***
+	pip install .
 where . refers to your current working directory i.e. inside git-maildiff
 and you are good to go.
 
 ###Uninstall
-pip  uninstall  maildiff
+	pip  uninstall  maildiff
 
 ###Setup Config
 
-***git config --global maildiff.mailto recipient@email.com***
+	git config --global maildiff.mailto recipient@email.com	
 
-***git config --global maildiff.smtpserver smtp.gmail.com***
+	git config --global maildiff.smtpserver smtp.gmail.com	
 
-***git config --global maildiff.smtpserverport 587***
+	git config --global maildiff.smtpserverport 587	
 
-***git config --global maildiff.mailFrom sender@email.com***
+	git config --global maildiff.mailFrom sender@email.com	
 
-***git config --global maildiff.smtpencryption tls*** 
+	git config --global maildiff.smtpencryption tls
+
 e.g. Gmail uses tls encryption
 
 if you forget to run the above setup the git maildiff command will prompts each 

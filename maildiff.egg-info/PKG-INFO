@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: maildiff
-Version: 1.1.1
+Version: 1.1.2
 Summary: Package to email color git diff
 Home-page: https://bitbucket.org/sanfx/git-maildiff
 Author: Sanjeev Kumar
