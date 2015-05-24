@@ -267,11 +267,15 @@ def __pre_Check(args, log):
 	else:
 		log.error(error.capitalize())
 
-def get_Html(diffData):
-	"""	This method converts git diff data to html color code
+def get_Html(linesfromDiff, sideBySide=False):
+	"""	Converts plain git diff text to html color code
 
-		:param diffData: diff between commits in simple text
-		:type diffData: str
+		:param linesfromDiff: diff between commits in simple text
+		:type linesfromDiff: str
+
+		:param sideBySide: whether diff to be displayed side
+						by side or not
+		:type sideBySide: bool
 
 		:Returns lines: colored html diff text
 		:type lines: str
@@ -279,16 +283,60 @@ def get_Html(diffData):
 	openTag = """<span style='font-size:1.0em; color: """
 	openTagEnd = ";font-family: courier, arial, helvetica, sans-serif;'>"
 	nbsp = '&nbsp;&nbsp;&nbsp;&nbsp;'
-	lines = []
 
-	for line in diffData:
-		color = "#ff0000" if line.startswith('-') else (
-			'#007900' if line.startswith('+') else (
-			'#B4009E' if line.startswith('@@') else '#000000'))
+
+	if sideBySide:
+		# TODO
+		# build data of side by side html lines with color formating
+		pass
+	else:
+		return _traditional_diff(linesfromDiff, openTag, openTagEnd, nbsp)
+
+def _traditional_diff(linesfromDiff, openTag, openTagEnd, nbsp):
+	lines = []	
+	line_num = 0
+
+	def updateLine(line_num, color, line):
 		tabs = line.count('\t')
-		lines.append("%s%s%s%s%s</span><br>" % 
-			((openTag, color, openTagEnd, nbsp*tabs, line)))
+		lines.append("%s:%s#%s%s%s%s</span><br>" % 
+		((repr(line_num), openTag, color, openTagEnd, nbsp*tabs, line)))
+		return lines
+
+	for line in linesfromDiff:
+		if (line.startswith('diff ') or
+				line.startswith('index ') or
+				line.startswith('--- ')):
+			color = "10EDF5"
+			updateLine(line_num, color, line)
+			continue
+
+		if line.startswith('-'):
+			color = "ff0000"
+			updateLine(line_num, color, line)
+			continue
+
+
+		if line.startswith('+++ '):
+			color = "07CB14"
+			updateLine(line_num, color, line)
+			continue
+
+		if line.startswith('@@ '):
+			_, old_nr, new_nr, _ = line.split(' ', 3)
+			line_num = int(new_nr.split(',')[0])
+			color = "5753BE"
+			updateLine(line_num, color, line)
+			continue
+
+		if line.startswith('+'):
+			color = "007900"
+			updateLine(line_num, color, line)
+
+		if line.startswith('+') or line.startswith(' '):
+			line_num += 1
+
 	return ''.join(lines)
+
 
 
 def _exec_git_command(log, command, verbose=False):
@@ -299,7 +347,7 @@ def _exec_git_command(log, command, verbose=False):
 			command(string): string of a git command
 			verbose(bool): whether to display every command
 			and its resulting data.
-		Return:
+		Returns:
 			(tuple): string of Data and error if present
 	"""
 	# converts multiple spaces to single space
