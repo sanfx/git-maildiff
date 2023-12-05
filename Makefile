@@ -1,6 +1,6 @@
 #
-# Makefile for git-maildiff 1.3
+# Makefile for git-maildiff 2.0
 #
-# Interpreter: Python 2.7
+# Interpreter: Python 3.7
 #
 #

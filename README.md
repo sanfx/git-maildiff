@@ -1,6 +1,6 @@
 **git maildiff**
 
-![maildiff.svg](http://img.shields.io/badge/pypi-2.7.0-green.svg?style=flat-square)
+![maildiff.svg](http://img.shields.io/badge/pypi-3.7.0-green.svg?style=flat-square)
 ![Django.svg](https://img.shields.io/pypi/l/Django.svg)
 ![green.svg](https://img.shields.io/badge/issues-0_Open-green.svg?style=flat-square)
 
@@ -80,6 +80,6 @@ Dependencies
  
 ## Contact
 
-**Email:** <skysan@gmail.com>
+**Email:** <sansupercool@duck.com>
 
-**Website:** [www.devilsan.com](http://www.devilsan.com "click to got to website")
+**Website:** [www.devilsan.com](http://devilsan.weebly.com "click to got to website")

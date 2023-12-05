@@ -1,9 +1,11 @@
+*.bak
 *.png
 *.jpg
 *.egg
 *.gz
 *.pyo
 build
+dist
 chart.png
 *coverage
 *.patch
