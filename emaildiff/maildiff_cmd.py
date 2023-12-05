@@ -17,6 +17,9 @@ EPILOG = """	Utility to email the color diff and patches in email from shell.
 
 	Examples:
 
+	 \x1b[36mgit %s --subject <your subject here >   --compose\x1b[m
+		compose message in default git editor to be sent prefixed with diff of changes.
+
 	 \x1b[36mgit %s --compose\x1b[m
 		compose message in default git editor to be sent prefixed with diff of changes.
 
@@ -63,12 +66,15 @@ def main():
 		formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('-v', '--verbose', action='store_true', 
 		help='if enabled will spit every command and its resulting data.')
+	parser.add_argument("-s", "--subject", dest="subject", type=str, default="")
 	parser.add_argument('-c', '--compose', action='store_true', 
 		help='compose message in default git editor to be sent prefixed with diff')
 	parser.add_argument('-to', type=__validate_address, metavar='Email', nargs='+',
-		help='enter a valid email you want to send to.')
+		help='A valid email you want to send to.')
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
+	parser.add_argument('-pwd', '--password', dest="password", action='store_true', default=False,
+		help="Prompt for user's sender email password rather than using from keychain.")
 	parser.add_argument('-d', '--diff', required=False, default='HEAD^ HEAD',
 		metavar='HEAD^ HEAD', help='if present pass arguments to it as you \
 		will do to git diff in inverted commas')
@@ -185,9 +191,8 @@ def _setUp_maildiff(log, config):
 	if not config.has_key('maildiff.mailfrom'):
 		log.info("\x1b[32mFirst time mail setup.\x1b[m")
 		userEmail = config['user.email']
-		log.warning("Do you want to use your git email '%s' to send diffs or any other email address ?", userEmail)
-		ret = raw_input('[YES]')
-		if ret.lower() in ['', 'yes', 'y']:
+		ret = raw_input("Do you want to use your git email '{}' to send diffs or any other email address ?\n\t[YES]".format(userEmail))
+		if ret.lower() in ['yes', 'y']:
 			ret = userEmail
 			__update_config(log, 'maildiff.mailfrom', ret)
 		else:
@@ -231,7 +236,7 @@ def __pre_Check(args, log):
 	# stripping newline character which got appended when pulling branch name
 	branchName = branchName.split("\n")[0]
 	commitComment, _ = _exec_git_command(log, 'git log -1 --pretty=%B')
-	subject = "%s: %s" % (branchName, commitComment)
+	subject = args.subject or "%s: %s" % (branchName, commitComment)
 
 	# check for fatal error when executing git command
 	diffData, error = _exec_git_command(log, diffCmd, VERBOSE)
@@ -263,7 +268,11 @@ def __pre_Check(args, log):
 				"Who do you want to send to ?")]
 			for mailto in mailtos:
 				log.info("Trying to send to %s", mailto)
-				__email_diff(log, subject, mailto, message, patches)
+				if args.password:
+					pas = getpass.getpass(prompt=" Password: ")
+				else:
+					pas = None
+				__email_diff(log, subject, mailto, message, patches, password=pas)
 	else:
 		log.error(error.capitalize())
 
@@ -365,7 +374,7 @@ def _exec_git_command(log, command, verbose=False):
 	return msg, err
 
 
-def __email_diff(log, subject, emailTo, htmlDiff, attachment):
+def __email_diff(log, subject, emailTo, htmlDiff, attachment, password=None):
 	""" This function send color diff via email
 
 		Args:
@@ -378,11 +387,11 @@ def __email_diff(log, subject, emailTo, htmlDiff, attachment):
 	Sent using git maildiff<br>
 	git clone https://sanfx@bitbucket.org/sanfx/git-maildiff.git""" % htmlDiff
 	emailInfo = config_db(log)
-	pwd = str(keyring.get_password('maildiff', emailInfo['maildiff.mailfrom']))
+	pwd = password or str(keyring.get_password('maildiff', emailInfo['maildiff.mailfrom']))
 	mail = send.EMail(
 						mailfrom=emailInfo['maildiff.mailfrom'], 
 						server=emailInfo['maildiff.smtpserver'], 
-						usrname=emailInfo['maildiff.mailfrom'].split('@')[0],
+						usrname=emailInfo['maildiff.mailfrom'],
 						password=pwd,
 						logger=log,
 						debug=False

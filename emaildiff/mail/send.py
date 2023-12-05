@@ -13,11 +13,11 @@ class EMail(object):
 	def __init__(self, mailfrom, server, usrname, password, logger, debug=False):
 		self.debug = debug
 		self._log = logger
-		self.mailFrom = mailfrom
+		self._mailFrom = mailfrom
 		self.smtpserver = server
 		self.EMAIL_PORT = 587
-		self.usrname = usrname
-		self.password = password
+		self._usrname = usrname
+		self._password = password
 
 
 	def sendMessage(self, subject, msgContent, files, mailto):
@@ -48,10 +48,11 @@ class EMail(object):
 			server.starttls()
 			# to make starttls work
 			server.ehlo()
-			server.login(self.usrname, self.password)
+			print self._usrname, self._password
+			server.login(self._usrname, self._password)
 			server.set_debuglevel(self.debug)
 			try:
-				server.sendmail(self.mailFrom, mailto, msg.as_string())
+				server.sendmail(self._mailFrom, mailto, msg.as_string())
 			except Exception as er:
 				print er
 				return False
@@ -75,7 +76,7 @@ class EMail(object):
 			:type msg: str
 		"""
 		msg = MIMEMultipart()
-		msg['From'] = self.mailFrom
+		msg['From'] = self._mailFrom
 		msg['To'] = mailto
 		msg['Date'] = formatdate(localtime=True)
 		msg['Subject'] = subject
