@@ -1,6 +1,6 @@
 **git maildiff**
 
-![maildiff.svg](http://img.shields.io/badge/pypi-3.7.0-green.svg?style=flat-square)
+![maildiff.svg](https://img.shields.io/badge/pypi-3.7.0-green.svg?style=flat-square)
 ![Django.svg](https://img.shields.io/pypi/l/Django.svg)
 ![green.svg](https://img.shields.io/badge/issues-0_Open-green.svg?style=flat-square)
 
