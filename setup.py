@@ -1,30 +1,15 @@
-import ez_setup
-ez_setup.use_setuptools()
-# help on python packaging: http://python-packaging.readthedocs.io/en/latest/index.html
-try:
-	from setuptools import setup
-except ImportError:
-	from distutils.core import setup
+import os
+from setuptools import setup
 
-from distutils.core import setup
-from os import path
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-try: # for pip >= 10
-	from pip._internal.req import parse_requirements
-except ImportError: # for pip <= 9.0.3
-	from pip.req import parse_requirements
-try:
-	from pip._internal.download import PipSession
-except ImportError:
-	from pip.download import PipSession
+reqs_path = os.path.join(os.path.dirname(__file__), 'requirements.txt')
 
-install_reqs = list(parse_requirements("requirements.txt", session=PipSession()))
-
-with open('requirements.txt', 'r') as reqh:
+with open(reqs_path, 'r') as reqh:
 	install_reqs = reqh.readlines()
 
-
-v = open(path.join(path.dirname(__file__), 'VERSION'))
+v = open(os.path.join(os.path.dirname(__file__), 'VERSION'))
 VERSION = v.readline().strip()
 v.close()
 
@@ -41,6 +26,7 @@ setup(
 	description='Package to email color git diff',
 	long_description=(open('README.md').read()),
 	long_description_content_type='text/markdown',
+	setup_requires=["setuptools>=58.0.4"],
 	install_requires=install_reqs,
 	entry_points={
 	'console_scripts':

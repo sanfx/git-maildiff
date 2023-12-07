@@ -1,3 +1,0 @@
-[console_scripts]
-git-maildiff = emaildiff.maildiff_cmd:main
-
