@@ -16,19 +16,11 @@ jobs:
       with:
         python-version: 3.7
 
-    - name: remove old pip
-      run: sudo apt remove python-pip
-
     - name: wget get-pip.py
       run:  wget https://bootstrap.pypa.io/get-pip.py
 
     - name: install pip
       run: python3 get-pip.py
-
-    - name: setuptools version
-      run: >-
-        python3 -c 
-        "import setuptools; from setuptools import build_meta; print('Build meta: {}'.format(build_meta)); print(setuptools.__version__)"
 
     - name: Install pypa/build
       run: >-
