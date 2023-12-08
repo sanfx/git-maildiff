@@ -1,1 +1,1 @@
-import maildiff_cmd
+from . import maildiff_cmd

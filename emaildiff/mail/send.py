@@ -1,8 +1,8 @@
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email.Utils import formatdate
-from email import Encoders
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import formatdate
+from email import encoders
 import os
 import socket
 import smtplib
@@ -48,13 +48,11 @@ class EMail(object):
 			server.starttls()
 			# to make starttls work
 			server.ehlo()
-			print self._usrname, self._password
 			server.login(self._usrname, self._password)
 			server.set_debuglevel(self.debug)
 			try:
 				server.sendmail(self._mailFrom, mailto, msg.as_string())
 			except Exception as er:
-				print er
 				return False
 			finally:
 				server.quit()
@@ -83,11 +81,14 @@ class EMail(object):
 
 		#the Body message
 		msg.attach(MIMEText(msgHTML, 'html'))
-		for phile in attachments:
+		for _file in attachments:
 			# we could check for MIMETypes here
 			part = MIMEBase('application', "octet-stream")
-			part.set_payload(open(phile, "rb").read())
-			Encoders.encode_base64(part)
-			part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(phile))
+			part.set_payload(open(_file, "rb").read())
+			encoders.encode_base64(part)
+			part.add_header(
+				'Content-Disposition',
+				'attachment; filename="%s"' % os.path.basename(_file)
+			)
 			msg.attach(part)
 		return msg
