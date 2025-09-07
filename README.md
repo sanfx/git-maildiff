@@ -82,4 +82,4 @@ Dependencies
 
 **Email:** <sansupercool@duck.com>
 
-**Website:** [www.devilsan.com](http://devilsan.weebly.com "click to got to website")
+**Website:** [sanfx.github.io](https://sanfx.github.io/ "click to got to website")
