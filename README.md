@@ -4,17 +4,14 @@
 ![Django.svg](https://img.shields.io/pypi/l/Django.svg)
 ![green.svg](https://img.shields.io/badge/issues-0_Open-green.svg?style=flat-square)
 
-**maildiff** is a simple git command to email diff in color to reviewer/ co-worker.
+**maildiff** is a simple git command to send diff in color to reviewer/ co-worker through email.
 
 Install
 -------
 
-Navigate to git-maildiff directory you cloned or downlaoded from terminal 
+Navigate to git-maildiff directory you cloned or downloaded from terminal 
 
-	pip install .
-
-where . refers to your current working directory i.e. inside git-maildiff
-and you are good to go.
+	pip install setup.py
 
 Uninstall
 ---------
@@ -76,10 +73,17 @@ Dependencies
 - [colorama](https://pypi.python.org/pypi/colorama/0.3.3) (for windows only)
 
 
-######Type **git maildiff -h** for help in command line/ terminal
+######
+Type **git maildiff -h** for help in command line/ terminal
  
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
 ## Contact
 
-**Email:** <sansupercool@duck.com>
+For any questions or issues, please open an issue on this GitHub repository or contact [Sanjeev Kumar](sanfx.github.io)
 
-**Website:** [sanfx.github.io](https://sanfx.github.io/ "click to got to website")
+---
+
+⭐️ Don't forget to star the repository if you find it useful!
