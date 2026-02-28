@@ -1,9 +1,16 @@
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email.Utils import formatdate
-from email import Encoders
-import os
+"""
+Email sending module for git-maildiff.
+
+This module provides the EMail class which handles sending emails with HTML content
+and attachments using SMTP.
+"""
+
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import formatdate
+from email import encoders
+from pathlib import Path
 import socket
 import smtplib
 
@@ -48,13 +55,12 @@ class EMail(object):
 			server.starttls()
 			# to make starttls work
 			server.ehlo()
-			print self._usrname, self._password
 			server.login(self._usrname, self._password)
 			server.set_debuglevel(self.debug)
 			try:
 				server.sendmail(self._mailFrom, mailto, msg.as_string())
 			except Exception as er:
-				print er
+				print(er)
 				return False
 			finally:
 				server.quit()
@@ -87,7 +93,7 @@ class EMail(object):
 			# we could check for MIMETypes here
 			part = MIMEBase('application', "octet-stream")
 			part.set_payload(open(phile, "rb").read())
-			Encoders.encode_base64(part)
-			part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(phile))
+			encoders.encode_base64(part)
+			part.add_header('Content-Disposition', 'attachment; filename="%s"' % Path(phile).name)
 			msg.attach(part)
 		return msg

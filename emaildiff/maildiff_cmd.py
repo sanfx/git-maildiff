@@ -1,4 +1,12 @@
 
+"""
+Main command-line interface for git-maildiff.
+
+This module provides the main entry point and command-line interface for the
+git-maildiff tool. It handles parsing arguments, configuring the environment,
+generating HTML diffs, and sending emails.
+"""
+
 import argparse
 import getpass
 import keyring
@@ -10,7 +18,7 @@ import tempfile
 
 from colorlog import ColoredFormatter
 from emaildiff.mail import send as send
-from os import path
+from pathlib import Path
 
 
 EPILOG = """	Utility to email the color diff and patches in email from shell.
@@ -60,7 +68,7 @@ def main():
 		creates a logger and inject it to function.
 
 	"""
-	appName = path.basename(sys.argv[0]).split('-')[-1]
+	appName = Path(sys.argv[0]).name.split('-')[-1]
 	parser = argparse.ArgumentParser(prog=appName,
 		description=__doc__, epilog=EPILOG% tuple([appName] * EPILOG.count('%s')), 
 		formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -188,10 +196,10 @@ def _setUp_maildiff(log, config):
 			config(dict): existing config from .gitconfig
 	"""
 	# check if data in  global config
-	if not config.has_key('maildiff.mailfrom'):
+	if 'maildiff.mailfrom' not in config:
 		log.info("\x1b[32mFirst time mail setup.\x1b[m")
 		userEmail = config['user.email']
-		ret = raw_input("Do you want to use your git email '{}' to send diffs or any other email address ?\n\t[YES]".format(userEmail))
+		ret = input("Do you want to use your git email '{}' to send diffs or any other email address ?\n\t[YES]".format(userEmail))
 		if ret.lower() in ['yes', 'y']:
 			ret = userEmail
 			__update_config(log, 'maildiff.mailfrom', ret)
@@ -203,13 +211,13 @@ def _setUp_maildiff(log, config):
 		emailPwd = getpass.getpass(prompt=" Password: ")
 		keyring.set_password('maildiff', ret, emailPwd)
 	# enter SMTP details for sending emails
-	if not config.has_key('maildiff.smtpserver'):
+	if 'maildiff.smtpserver' not in config:
 		log.info("Add SMTP details for '%s'.", ret)
-		smtpServer = raw_input(" SMTP Server: ")
+		smtpServer = input(" SMTP Server: ")
 		__update_config(log, 'maildiff.smtpserver', smtpServer)
-		smtpServerPort = raw_input(" SMTP Server Port: ")
+		smtpServerPort = input(" SMTP Server Port: ")
 		__update_config(log, 'maildiff.smtpserverport', smtpServerPort)
-		smtpEncryption = raw_input(" Server Encryption: ")
+		smtpEncryption = input(" Server Encryption: ")
 		__update_config(log, 'maildiff.smtpencryption', smtpEncryption)
 	return True
 
@@ -222,7 +230,7 @@ def __pre_Check(args, log):
 	"""
 	config = config_db(log)
 
-	editor = config['core.editor'] if config.has_key('core.editor') else 'vi'
+	editor = config['core.editor'] if 'core.editor' in config else 'vi'
 
 	VERBOSE = args.verbose
 
@@ -264,7 +272,7 @@ def __pre_Check(args, log):
 				# update the user email info by reading config again
 				config = config_db(log)
 
-			mailtos = args.to if args.to else [raw_input(
+			mailtos = args.to if args.to else [input(
 				"Who do you want to send to ?")]
 			for mailto in mailtos:
 				log.info("Trying to send to %s", mailto)
@@ -362,7 +370,7 @@ def _exec_git_command(log, command, verbose=False):
 	# converts multiple spaces to single space
 	command = re.sub(' +',' ',command)
 	pr = subprocess.Popen(command, shell=True,
-		stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 	msg = pr.stdout.read()
 	err = pr.stderr.read()
 	if err:
