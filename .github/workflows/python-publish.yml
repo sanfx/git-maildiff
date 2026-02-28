@@ -2,8 +2,8 @@ name: Upload Python Package git maildiff
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.7
+        python-version: '3.13'
 
     - name: Install dependencies
       run: |
@@ -36,9 +36,6 @@ jobs:
         .
   
     - name: Publish distribution 📦 to PyPI
-      if: |
-        github.event_name == 'push' &&
-        startsWith(github.ref, 'refs/tags/v')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
