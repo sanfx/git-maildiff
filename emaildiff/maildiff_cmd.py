@@ -16,7 +16,6 @@ import subprocess
 import sys
 import tempfile
 
-from colorlog import ColoredFormatter
 from emaildiff.mail import send as send
 from pathlib import Path
 
@@ -95,17 +94,8 @@ def main():
 	handler = logging.StreamHandler()
 
 	DATE_FORMAT = '%H:%M'
-	formatter = ColoredFormatter(
-		"%(log_color)s%(name)s %(asctime)-2s%(reset)s %(message_log_color)s%(message)s",
-		secondary_log_colors={
-				'message': {
-						'ERROR': 'red',
-						'CRITICAL': 'red',
-						'INFO': 'cyan',
-						'WARNING': 'yellow'
-	 
-						}
-				},
+	formatter = logging.Formatter(
+		"%(name)s %(asctime)-2s %(message)s",
 		datefmt=DATE_FORMAT,
 		)
 	handler.setFormatter(formatter)

@@ -1,22 +1,23 @@
 **git maildiff**
 
-![maildiff.svg](https://img.shields.io/badge/pypi-3.7.0-green.svg?style=flat-square)
-![Django.svg](https://img.shields.io/pypi/l/Django.svg)
-![green.svg](https://img.shields.io/badge/issues-0_Open-green.svg?style=flat-square)
+![Python Version](https://img.shields.io/badge/Python-3.7%2B-blue.svg)
+![PyPI - License](https://img.shields.io/pypi/l/maildiff.svg)
+![Issues - Open](https://img.shields.io/badge/issues-0_Open-green.svg?style=flat-square)
 
 **maildiff** is a simple git command to send diff in color to reviewer/ co-worker through email.
+
 
 Install
 -------
 
 Navigate to git-maildiff directory you cloned or downloaded from terminal 
 
-	pip install setup.py
+	pip install .
 
 Uninstall
 ---------
 
-	pip  uninstall  maildiff
+	pip uninstall maildiff
 
 Setup Config
 ------------
@@ -62,15 +63,11 @@ proxy settings like
 Dependencies
 ------------
 
-- [argparse](https://docs.python.org/2.7/library/argparse.html)
+- [argparse](https://docs.python.org/3/library/argparse.html)
 
-- [keyring](https://pypi.python.org/pypi/keyring)
+- [keyring](https://pypi.org/project/keyring/)
 
-- [logging](https://docs.python.org/2/library/logging.html)
-
-- [colorlog](https://pypi.python.org/pypi/colorlog/2.6.0)
-
-- [colorama](https://pypi.python.org/pypi/colorama/0.3.3) (for windows only)
+- [logging](https://docs.python.org/3/library/logging.html)
 
 
 ######
@@ -87,3 +84,4 @@ For any questions or issues, please open an issue on this GitHub repository or c
 ---
 
 ⭐️ Don't forget to star the repository if you find it useful!
+
