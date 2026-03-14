@@ -17,7 +17,7 @@ import smtplib
 class EMail(object):
 	""" Class defines method to send email
 	"""
-	def __init__(self, mailfrom, server, usrname, password, logger, debug=False):
+	def __init__(self, mailfrom: str, server: str, usrname: str, password: str, logger, debug=False):
 		self.debug = debug
 		self._log = logger
 		self._mailFrom = mailfrom
@@ -66,7 +66,7 @@ class EMail(object):
 				server.quit()
 			return True
 
-	def prepareMail(self, subject, msgHTML, attachments, mailto):
+	def prepareMail(self, subject: str, msgHTML: str, attachments: list, mailto) -> MIMEMultipart:
 		"""	Prepare the email to send
 
 			:param subject: subject of the email.
@@ -79,7 +79,6 @@ class EMail(object):
 			:type attachments: list
 
 			:Returns msg: message to be sent
-			:type msg: str
 		"""
 		msg = MIMEMultipart()
 		msg['From'] = self._mailFrom
