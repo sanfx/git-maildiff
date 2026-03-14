@@ -17,7 +17,9 @@ import sys
 import tempfile
 
 from emaildiff.diff import generate as generate
+from emaildiff.diff import validate as diff_validate
 from emaildiff.mail import send as send
+from emaildiff.mail import validate as mail_validate
 from pathlib import Path
 
 
@@ -52,19 +54,6 @@ EPILOG = """	Utility to email the color diff and patches in email from shell.
 _log = logging.getLogger(__name__)
 
 
-def __validate_address(address):
-	"""	If address looks like a valid e-mail address, return it. Otherwise
-		raise ArgumentTypeError.
-
-		Args:
-			address(string): email address to send to
-		.. document private functions
-		.. automethod:: _evaporate
-	"""
-	if re.match('^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$', address):
-		return address
-	raise argparse.ArgumentTypeError('Invalid e-mail address: %s' % address)
-
 def main():
 	"""
 		This function parses the argumets passed from commandline.
@@ -80,7 +69,7 @@ def main():
 	parser.add_argument("-s", "--subject", dest="subject", type=str, default="")
 	parser.add_argument('-c', '--compose', action='store_true',
 		help='compose message in default git editor to be sent prefixed with diff')
-	parser.add_argument('-to', type=__validate_address, metavar='Email', nargs='+',
+	parser.add_argument('-to', type=lambda a: mail_validate.validate_address(a).value, metavar='Email', nargs='+',
 		help='A valid email you want to send to.')
 	parser.add_argument('-p', '--patches', type=int, default=0, metavar='*.patch files',
 		help='total number of pathces of last commits to email')
@@ -180,7 +169,7 @@ def _setUp_maildiff(config):
 			ret = sender_email
 			__update_config('maildiff.mailfrom', ret)
 		else:
-			ret = __validate_address(ret)
+			ret = mail_validate.validate_address(ret).value
 			_exec_git_command('git maildiff.mailfrom %s' % ret)
 		__update_config('maildiff.mailfrom', ret)
 		_log.info("Please enter password for the email: %s", ret)
@@ -216,29 +205,6 @@ def __get_context(args):
 	subject = args.subject or "%s: %s" % (branchName, commitComment)
 
 	return config, editor, diffCmd, subject
-
-
-def __validate_diff(diffCmd, args, verbose):
-	"""Runs the diff command and checks repo state for errors or uncommitted changes.
-
-	Returns:
-		tuple: (diffData, patches) or None if the workflow should abort.
-	"""
-	diffData, error = _exec_git_command(diffCmd, verbose)
-	if 'fatal' in error.split(":"):
-		_log.error(error.capitalize())
-		return None
-
-	modifiedData, _ = _exec_git_command('git status', verbose)
-	if any(re.search(word, modifiedData) for word in ['modified', 'untracked']):
-		_log.warning('You have uncommited changes.')
-		if not args.u:
-			_log.info("Use git maildiff -u to email diff of uncommited changes")
-			return None
-
-	name, _ = _exec_git_command('git format-patch -%s' % args.patches)
-	patches = [item for item in name.split("\n") if item]
-	return diffData, patches
 
 
 def __build_message(args, editor, diffData):
@@ -277,7 +243,7 @@ def __pre_Check(args):
 
 	config, editor, diffCmd, subject = context
 
-	result = __validate_diff(diffCmd, args, args.verbose)
+	result = diff_validate.validate_diff(diffCmd, args, args.verbose, _exec_git_command)
 	if not result:
 		return
 
@@ -335,7 +301,7 @@ def __email_diff(subject, emailTo, htmlDiff, attachment, password=None):
 						debug=False
 					)
 	try:
-		emailTo = __validate_address(emailTo)
+		emailTo = mail_validate.validate_address(emailTo).value
 	except argparse.ArgumentTypeError as er:
 		_log.error("%s. Message not sent.", er)
 	else:
